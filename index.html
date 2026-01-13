@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -118,7 +119,8 @@
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        // ADDED: Added signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut to imports for Auth Logic
+        import { getAuth, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 
         let app, db, auth;
 
@@ -402,7 +404,7 @@ auth = getAuth(app);
                                         <p class="text-lg font-black text-rose-900 leading-none">${state.profile.name}</p>
                                     </div>
                                 </div>
-<button onclick="state.previousView='create'; state.view='dashboard'; if(state.quizId) loadAttempts(state.quizId); render();" class="p-2 bg-white rounded-full text-rose-400 hover:text-rose-600 shadow-sm border-2 border-rose-100" title="View Dashboard">
+<button onclick="handleOpenDashboard('create')" class="p-2 bg-white rounded-full text-rose-400 hover:text-rose-600 shadow-sm border-2 border-rose-100" title="View Dashboard">
     <i data-lucide="layout-dashboard" size="18"></i>
 </button>
 
@@ -800,14 +802,29 @@ auth = getAuth(app);
             setView('auth');
         };
 
-        window.handleLogin = () => {
+        // FIXED: Replaced simple state change with Real Firebase Auth
+        window.handleLogin = async () => {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
             if(!email || !pass) { alert("Please fill in your pookie details! 🥺"); return; }
-            state.isLoggedIn = true;
-            state.isGuest = false;
-            state.userEmail = email;
-            if(state.profileCompleted) { setView('create'); } else { setView('profile'); }
+            
+            try {
+                // ADDED: Real Firebase Login
+                const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+                const user = userCredential.user;
+                console.log("Logged in user:", user.uid);
+
+                state.isLoggedIn = true;
+                state.isGuest = false;
+                state.userEmail = email;
+                
+                // If they have a profile completed in local state, go to create, else profile
+                if(state.profileCompleted) { setView('create'); } else { setView('profile'); }
+                
+            } catch (error) {
+                console.error("Login failed", error);
+                alert("Oops! " + error.message + " 🥺");
+            }
         };
 
         window.handleGuestMode = () => {
@@ -822,83 +839,97 @@ auth = getAuth(app);
             state.profile.name = name;
             state.profileCompleted = true;
             setView('create');
-        }
+        };
 
         window.handleNewProfile = () => {
-             state.profile = { ...defaultState.profile };
-             state.profileCompleted = false;
-             setView('profile');
-        };
-
-        window.handleLogout = () => {
-            const confirmLogout = confirm("Are you sure you want to leave your pookies? 😢");
-            if(confirmLogout) {
-                localStorage.removeItem(STORAGE_KEY);
-                state = { ...defaultState };
-                location.reload(); 
-            }
-        };
-
-        window.showSoon = () => {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast-enter bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 pointer-events-auto mb-2';
-            toast.innerHTML = `<i data-lucide="sparkles" size="16" class="text-yellow-300"></i><span class="text-sm font-bold">Available soon! 🚧</span>`;
-            container.appendChild(toast);
-            lucide.createIcons();
-            setTimeout(() => {
-                toast.classList.remove('toast-enter');
-                toast.classList.add('toast-exit');
-                setTimeout(() => toast.remove(), 300);
-            }, 2000);
+            state.profile = { ...defaultState.profile }; // Reset profile
+            setView('profile');
         };
 
         window.handleProfileLiveUpdate = (field, value) => {
             state.profile[field] = value;
-            saveState(); 
-        }
+            if(state.view === 'create') render(); // Re-render if in creator view to show name update
+        };
 
         window.updateVibe = (vibe) => {
             state.profile.vibe = vibe;
             render();
-        }
+        };
 
-        window.handleZodiacCalc = (dateVal) => {
-            state.profile.dob = dateVal;
-            const z = getZodiac(dateVal);
-            state.profile.zodiac = z.n;
-            state.profile.element = z.e;
+        window.handleZodiacCalc = (dateStr) => {
+            state.profile.dob = dateStr;
+            const date = new Date(dateStr);
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            
+            let sign = "";
+            let element = "";
+
+            // Simple Zodiac Logic
+            if((month==3 && day>=21)||(month==4 && day<=19)){ sign="Aries"; element="Fire"; }
+            else if((month==4 && day>=20)||(month==5 && day<=20)){ sign="Taurus"; element="Earth"; }
+            else if((month==5 && day>=21)||(month==6 && day<=20)){ sign="Gemini"; element="Air"; }
+            else if((month==6 && day>=21)||(month==7 && day<=22)){ sign="Cancer"; element="Water"; }
+            else if((month==7 && day>=23)||(month==8 && day<=22)){ sign="Leo"; element="Fire"; }
+            else if((month==8 && day>=23)||(month==9 && day<=22)){ sign="Virgo"; element="Earth"; }
+            else if((month==9 && day>=23)||(month==10 && day<=22)){ sign="Libra"; element="Air"; }
+            else if((month==10 && day>=23)||(month==11 && day<=21)){ sign="Scorpio"; element="Water"; }
+            else if((month==11 && day>=22)||(month==12 && day<=21)){ sign="Sagittarius"; element="Fire"; }
+            else if((month==12 && day>=22)||(month==1 && day<=19)){ sign="Capricorn"; element="Earth"; }
+            else if((month==1 && day>=20)||(month==2 && day<=18)){ sign="Aquarius"; element="Air"; }
+            else if((month==2 && day>=19)||(month==3 && day<=20)){ sign="Pisces"; element="Water"; }
+
+            state.profile.zodiac = sign;
+            state.profile.element = element;
             render();
-        }
+        };
 
-        window.saveProfile = () => {
-            const nameEl = document.getElementById('prof-name');
-            const knownEl = document.getElementById('prof-known');
-            const passEl = document.getElementById('prof-pass');
-            const passConfEl = document.getElementById('prof-pass-confirm');
+        window.saveProfile = async () => {
+            if (!state.profile.name) { showToast("What's your name, pookie? 🥺"); return; }
             
-            if(nameEl) state.profile.name = nameEl.value;
-            if(knownEl) state.profile.knownFor = knownEl.value;
-            
-            if (!state.isGuest) {
-                if(!state.profile.email) { alert("Pookie needs an email! 📧"); return; }
-                if(!passEl.value || passEl.value !== passConfEl.value) { alert("Passwords must match, pookie! 🔐"); return; }
-                state.profile.password = passEl.value;
+            // If email/pass provided, create account
+            if(state.profile.email && document.getElementById('prof-pass').value) {
+                const pass = document.getElementById('prof-pass').value;
+                const confirm = document.getElementById('prof-pass-confirm').value;
+                
+                if(pass !== confirm) { showToast("Passwords don't match! 🤨"); return; }
+                
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, state.profile.email, pass);
+                    state.userEmail = userCredential.user.email;
+                    state.isLoggedIn = true;
+                    // Save extra profile data to Firestore 'users' collection (optional for this MVP but good practice)
+                    await setDoc(doc(db, "users", userCredential.user.uid), {
+                        name: state.profile.name,
+                        dob: state.profile.dob,
+                        vibe: state.profile.vibe,
+                        knownFor: state.profile.knownFor
+                    });
+                } catch(e) {
+                    showToast("Error: " + e.message);
+                    return;
+                }
             }
 
-            if (!state.profile.name) { alert("What should pookies call you? ✨"); return; }
             state.profileCompleted = true;
             setView('create');
         };
 
-        window.setMode = (mode) => {
-            state.selectedMode = mode;
-            render();
-        };
+        // --- QUESTION MANAGEMENT ---
 
         window.addQuestion = () => {
-            state.questions.push({ question: '', correctAnswer: '', isMultipleChoice: false, options: ['', ''] });
+            state.questions.push({
+                question: '',
+                isMultipleChoice: false,
+                options: ['', ''],
+                correctAnswer: ''
+            });
             render();
+            // Scroll to bottom
+            setTimeout(() => {
+                const list = document.getElementById('questionsList');
+                if(list) list.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
         };
 
         window.removeQuestion = (idx) => {
@@ -906,56 +937,167 @@ auth = getAuth(app);
             render();
         };
 
-        window.updateQuestion = (idx, field, val) => {
-            state.questions[idx][field] = val;
-            saveState();
+        window.updateQuestion = (idx, field, value) => {
+            state.questions[idx][field] = value;
         };
 
-        window.handleCreateQuiz = async () => {
-            if (state.questions.length === 0) { alert("Add at least one question! 🎀"); return; }
-            const id = Math.random().toString(36).substring(2, 8);
-            const newQuiz = { id, creatorName: state.profile.name, creatorId: (!DEV_MODE && auth?.currentUser) ? auth.currentUser.uid : 'anon', mode: state.selectedMode, questions: state.questions, createdAt: Date.now() };
-            if (!DEV_MODE && db) { try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', id), newQuiz); } catch(e) { console.error("Firebase Save Error", e); } } 
-            else { localStorage.setItem('dev_quiz_' + id, JSON.stringify(newQuiz)); }
-            state.quizId = id;
-            state.activeQuiz = newQuiz;
-            state.view = 'share';
+        window.toggleMultipleChoice = (idx) => {
+            state.questions[idx].isMultipleChoice = !state.questions[idx].isMultipleChoice;
+            // Reset answer when toggling
+            state.questions[idx].correctAnswer = ''; 
             render();
         };
 
-        window.copyLink = () => {
-            const url = `${window.location.origin}${window.location.pathname}?q=${state.quizId}`;
-            if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => alert("Copied! 🎀")); } 
-            else { alert("Copied! 🎀"); }
-        };
-                   window.handleOptionSelect = (qIdx, value) => {
-            state.friendAnswers[qIdx] = value;
-            render(); // This ensures the UI highlights the selected pink box immediately
-        };
-
-        window.openDashboardConfirm = () => { state.showDashboardConfirm = true; render(); };
-        window.confirmDashboard = () => { state.showDashboardConfirm = false; state.view = 'dashboard'; if(state.quizId) loadAttempts(state.quizId); render(); };
-        window.cancelDashboard = () => { state.showDashboardConfirm = false; render(); };
-        window.openProfileEditor = () => { state.editDraft = { ...state.profile }; state.showProfileEditor = true; render(); };
-        window.closeProfileEditor = () => { state.showProfileEditor = false; render(); };
-        window.handleProfileInput = (field, value) => { state.editDraft[field] = value; render(); };
-        window.saveProfileEdits = () => { if (JSON.stringify(state.profile) === JSON.stringify(state.editDraft)) return; state.profile = { ...state.editDraft }; state.showProfileEditor = false; render(); };
-
-        window.toggleDeleteMenu = (id) => { state.showDeleteId = state.showDeleteId == id ? null : id; render(); };
-        window.deleteAttempt = async (timestamp) => {
-            if (!confirm("Are you sure you want to delete this pookie's score? 🥺")) return;
-            const index = state.attempts.findIndex(a => a.timestamp == timestamp);
-            if (index > -1) {
-                const attempt = state.attempts[index];
-                state.attempts.splice(index, 1);
-                if (!DEV_MODE && db && attempt.id) {
-                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attempts', attempt.id)); } catch(e) { console.error(e); }
-                } else {
-                    localStorage.setItem('dev_attempts_' + state.quizId, JSON.stringify(state.attempts));
-                }
-                state.showDeleteId = null;
+        window.addOption = (qIdx) => {
+            if(state.questions[qIdx].options.length < 6) {
+                state.questions[qIdx].options.push('');
                 render();
             }
+        };
+
+        window.removeOption = (qIdx, oIdx) => {
+            state.questions[qIdx].options.splice(oIdx, 1);
+            render();
+        };
+
+        window.updateOption = (qIdx, oIdx, val) => {
+            state.questions[qIdx].options[oIdx] = val;
+            // If this option was the correct answer, update the correct answer text too
+            // (Only complex if we stored index, but we store string value)
+             if(state.questions[qIdx].correctAnswer === state.questions[qIdx].options[oIdx]) {
+                 state.questions[qIdx].correctAnswer = val;
+             }
+        };
+
+        window.setMode = (mode) => {
+            state.selectedMode = mode;
+            render();
+        };
+
+        // --- QUIZ CREATION & SHARING ---
+
+        window.handleCreateQuiz = async () => {
+            if(state.questions.length === 0) { showToast("Add at least one question! 🧸"); return; }
+            
+            // Validate that all questions have answers
+            const invalid = state.questions.some(q => !q.question || !q.correctAnswer);
+            if(invalid) { showToast("Please fill in all questions & answers! 🚨"); return; }
+
+            const payload = {
+                creatorName: state.profile.name,
+                creatorId: state.userEmail || 'guest',
+                mode: state.selectedMode,
+                questions: state.questions,
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                const docRef = await addDoc(collection(db, "quizzes"), payload);
+                state.quizId = docRef.id;
+                
+                // Update URL without reloading
+                const url = new URL(window.location);
+                url.searchParams.set('q', state.quizId);
+                window.history.pushState({}, '', url);
+                
+                setView('share');
+            } catch (e) {
+                console.error("Error creating quiz:", e);
+                showToast("Could not save quiz. Check connection! 😢");
+            }
+        };
+
+        window.copyLink = () => {
+            const url = document.getElementById('linkText').innerText;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast("Link copied! Send it to pookie 🚀");
+            });
+        };
+
+        // --- ATTEMPT LOGIC (FRIEND VIEW) ---
+
+        window.startAttempt = () => {
+            const name = document.getElementById('friendNameInput').value;
+            if(!name) { showToast("Don't be shy, tell me your name! 💗"); return; }
+            state.friendName = name;
+            state.friendAnswers = new Array(state.activeQuiz.questions.length).fill('');
+            render();
+        };
+
+        window.updateFriendAnswer = (idx, val) => {
+            state.friendAnswers[idx] = val;
+        };
+
+        window.handleOptionSelect = (idx, val) => {
+            state.friendAnswers[idx] = val;
+            render(); // Re-render to show selection highlight
+        };
+
+        window.handleSubmitAttempt = async () => {
+            // Calculate Score
+            let score = 0;
+            state.activeQuiz.questions.forEach((q, idx) => {
+                const friendAns = (state.friendAnswers[idx] || '').trim().toLowerCase();
+                const correct = (q.correctAnswer || '').trim().toLowerCase();
+                if(friendAns === correct) score++;
+            });
+
+            const result = {
+                score,
+                total: state.activeQuiz.questions.length,
+                percentage: Math.round((score / state.activeQuiz.questions.length) * 100)
+            };
+
+            state.attemptResult = result;
+
+            // Save Attempt to Firestore
+            try {
+                await addDoc(collection(db, "quizzes", state.quizId, "attempts"), {
+                    friendName: state.friendName,
+                    answers: state.friendAnswers,
+                    score: result.score,
+                    total: result.total,
+                    timestamp: new Date().toISOString()
+                });
+            } catch(e) {
+                console.error("Error saving attempt", e);
+            }
+
+            render();
+        };
+
+        // --- DASHBOARD LOGIC ---
+
+        window.handleOpenDashboard = (fromView) => {
+            if(!state.quizId) { showToast("Create a quiz first! 🤦‍♀️"); return; }
+            state.previousView = fromView;
+            
+            // Listen to live updates
+            const q = collection(db, "quizzes", state.quizId, "attempts");
+            // Detach previous listener if exists (not implemented for simplicity in this snippet, but good practice)
+            
+            onSnapshot(q, (snapshot) => {
+                const attempts = [];
+                snapshot.forEach((doc) => {
+                    attempts.push({ id: doc.id, ...doc.data() });
+                });
+                state.attempts = attempts;
+                render();
+            });
+
+            // If user is guest/creator, simple check. If auth, verify (skipping complex auth rules for demo)
+            state.showDashboardConfirm = true;
+            render();
+        };
+
+        window.confirmDashboard = () => {
+            state.showDashboardConfirm = false;
+            setView('dashboard');
+        };
+
+        window.cancelDashboard = () => {
+            state.showDashboardConfirm = false;
+            render();
         };
 
         window.openAttemptDetails = (idx) => {
@@ -963,112 +1105,153 @@ auth = getAuth(app);
             render();
         };
 
-        window.startAttempt = () => {
-            const nameInput = document.getElementById('friendNameInput');
-            if(!nameInput.value) { alert("Tell me your name! 💕"); return; }
-            state.friendName = nameInput.value;
+        window.toggleDeleteMenu = (id) => {
+            if(state.showDeleteId === id) state.showDeleteId = null;
+            else state.showDeleteId = id;
             render();
         };
 
-        window.updateFriendAnswer = (idx, val) => {
-            state.friendAnswers[idx] = val;
-            saveState(); 
+        window.deleteAttempt = async (timestamp) => {
+            // In this simple array logic, we need the Doc ID. 
+            // NOTE: Ideally 'attempts' array stores doc ID. 
+            // Filtering by timestamp for now assuming unique timestamps/IDs match in real logic
+            const attempt = state.attempts.find(a => a.timestamp === timestamp);
+            if(attempt && attempt.id) {
+                try {
+                    await deleteDoc(doc(db, "quizzes", state.quizId, "attempts", attempt.id));
+                    showToast("Bye bye entry! 👋");
+                } catch(e) {
+                    showToast("Could not delete. 😔");
+                }
+            }
+            state.showDeleteId = null;
         };
 
-        window.handleSubmitAttempt = async () => {
-            let score = 0;
-            state.activeQuiz.questions.forEach((q, idx) => {
-                const friendAns = (state.friendAnswers[idx] || '').trim().toLowerCase();
-                const correctAns = (q.correctAnswer || '').trim().toLowerCase();
-                if (friendAns && correctAns && friendAns === correctAns) score++;
-            });
-            const attempt = { quizId: state.activeQuiz.id, friendName: state.friendName, answers: state.friendAnswers, score, total: state.activeQuiz.questions.length, timestamp: Date.now() };
-            if (!DEV_MODE && db) { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'attempts'), attempt); } 
-            else { const existing = JSON.parse(localStorage.getItem('dev_attempts_' + state.activeQuiz.id) || '[]'); existing.push(attempt); localStorage.setItem('dev_attempts_' + state.activeQuiz.id, JSON.stringify(existing)); }
-            state.attemptResult = attempt;
+        // --- PROFILE EDITING ---
+
+        window.openProfileEditor = () => {
+            state.editDraft = JSON.parse(JSON.stringify(state.profile)); // Deep copy
+            state.showProfileEditor = true;
             render();
         };
 
-        const getZodiac = (dateString) => {
-            if(!dateString) return {n: "", e: "", s: ""};
-            const date = new Date(dateString);
-            const day = date.getDate();
-            const month = date.getMonth() + 1;
-            if ((month == 3 && day >= 21) || (month == 4 && day <= 19)) return {n: "Aries", e: "Fire", s: "♈"};
-            if ((month == 4 && day >= 20) || (month == 5 && day <= 20)) return {n: "Taurus", e: "Earth", s: "♉"};
-            if ((month == 5 && day >= 21) || (month == 6 && day <= 20)) return {n: "Gemini", e: "Air", s: "♊"};
-            if ((month == 6 && day >= 21) || (month == 7 && day <= 22)) return {n: "Cancer", e: "Water", s: "♋"};
-            if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) return {n: "Leo", e: "Fire", s: "♌"};
-            if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return {n: "Virgo", e: "Earth", s: "♍"};
-            if ((month == 9 && day >= 23) || (month == 10 && day <= 22)) return {n: "Libra", e: "Air", s: "♎"};
-            if ((month == 10 && day >= 23) || (month == 11 && day <= 21)) return {n: "Scorpio", e: "Water", s: "♏"};
-            if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) return {n: "Sagittarius", e: "Fire", s: "♐"};
-            if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) return {n: "Capricorn", e: "Earth", s: "♑"};
-            if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) return {n: "Aquarius", e: "Air", s: "♒"};
-            return {n: "Pisces", e: "Water", s: "♓"};
+        window.closeProfileEditor = () => {
+            state.showProfileEditor = false;
+            render();
         };
 
-        window.toggleMultipleChoice = (idx) => { state.questions[idx].isMultipleChoice = !state.questions[idx].isMultipleChoice; render(); };
-        window.addOption = (qIdx) => { if (state.questions[qIdx].options.length < 6) { state.questions[qIdx].options.push(''); render(); } };
-        window.removeOption = (qIdx, optIdx) => { state.questions[qIdx].options.splice(optIdx, 1); render(); };
-        window.updateOption = (qIdx, optIdx, val) => { state.questions[qIdx].options[optIdx] = val; saveState(); };
+        window.handleProfileInput = (field, val) => {
+            state.editDraft[field] = val;
+            render(); // Re-render modal to show changes/save button state
+        };
 
-                async function loadQuiz(id) {
-            let quizData = null;
-            // Fetch the quiz data from Firebase or LocalStorage
-            if (!DEV_MODE && db) { 
-                try { 
-                    const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', id)); 
-                    if (snap.exists()) quizData = snap.data(); 
-                } catch(e) { console.error("Load Error", e); } 
-            } else { 
-                const localData = localStorage.getItem('dev_quiz_' + id); 
-                if(localData) quizData = JSON.parse(localData); 
+        window.saveProfileEdits = async () => {
+            state.profile = { ...state.editDraft };
+            saveState();
+            
+            if(state.isLoggedIn && auth.currentUser) {
+                try {
+                     await setDoc(doc(db, "users", auth.currentUser.uid), {
+                        name: state.profile.name,
+                        dob: state.profile.dob,
+                        knownFor: state.profile.knownFor
+                    }, { merge: true });
+                } catch(e) { console.error("Cloud save failed", e); }
             }
+            
+            closeProfileEditor();
+            showToast("Profile updated! ✨");
+        };
 
-            if (quizData) { 
-                state.activeQuiz = quizData; 
-                state.quizId = id; 
-                // Always set view to 'attempt' so friends see the quiz questions
-                state.view = 'attempt'; 
-            } else { 
-                alert("Quiz not found! 🥺"); 
-                state.view = 'landing'; 
+        window.handleLogout = async () => {
+            try {
+                await signOut(auth);
+                localStorage.removeItem(STORAGE_KEY);
+                state = { ...defaultState };
+                window.location.href = window.location.origin + window.location.pathname; // Hard reload
+            } catch(e) {
+                console.error(e);
             }
-            render();
-        }
+        };
 
+        // --- UTILS ---
 
-                // Add "query" and "where" to your imports at the very top of the script if they aren't there
-        // import { ..., query, where } from "..."
+        window.showSoon = () => showToast("Coming soon bestie! 🚧");
 
-        function loadAttempts(id) {
-            if (!DEV_MODE && db) {
-                // Create a reference to the attempts collection
-                const attemptsRef = collection(db, 'artifacts', appId, 'public', 'data', 'attempts');
-                
-                // Set up a real-time listener
-                onSnapshot(attemptsRef, (snapshot) => {
-                    const allAttempts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                    // Filter attempts for this specific quiz
-                    state.attempts = allAttempts.filter(a => a.quizId === id);
-                    render(); // Re-render the dashboard automatically when a new friend finishes
-                }, (error) => {
-                    console.error("Dashboard Listener Error:", error);
-                });
-            } else {
-                state.attempts = JSON.parse(localStorage.getItem('dev_attempts_' + id) || '[]');
-                render();
-            }
-        }
+        window.showToast = (msg) => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `bg-rose-900 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm flex items-center gap-2 border-2 border-rose-800 toast-enter`;
+            toast.innerHTML = `<i data-lucide="sparkles" size="16" class="text-rose-300"></i> ${msg}`;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        };
+
+        // --- INITIALIZATION ---
 
         async function init() {
-            if (!DEV_MODE && auth) { try { await signInAnonymously(auth); } catch(e) { console.error("Auth Error", e); } }
-            const params = new URLSearchParams(window.location.search);
-            const qId = params.get('q');
-            if (qId) { await loadQuiz(qId); } else { render(); }
-        } 
+            // Check URL for Quiz ID
+            const urlParams = new URLSearchParams(window.location.search);
+            const qId = urlParams.get('q');
+
+            if (qId) {
+                // Load Quiz Logic
+                state.quizId = qId;
+                try {
+                    const docRef = doc(db, "quizzes", qId);
+                    const docSnap = await getDoc(docRef);
+                    
+                    if (docSnap.exists()) {
+                        state.activeQuiz = docSnap.data();
+                        
+                        // Check if I am the creator (Local storage check)
+                        // In a real app, we check Auth UID vs creatorId
+                        const isCreator = (state.activeQuiz.creatorId === state.userEmail) || 
+                                          (state.questions.length > 0 && state.profile.name === state.activeQuiz.creatorName); // Fallback for guest creator session
+
+                        if (isCreator) {
+                           // Stay on create/dashboard view if I just made it, 
+                           // OR if I am revisiting link, maybe go to dashboard?
+                           // For simplicity: If I have questions in local state matching ID, I am creator
+                           setView('share'); 
+                        } else {
+                           setView('attempt');
+                        }
+                    } else {
+                        showToast("Quiz not found! 💔");
+                        setView('landing');
+                    }
+                } catch (e) {
+                    console.error("Error loading quiz", e);
+                    setView('landing');
+                }
+            } else {
+                // If logged in via Firebase Auth state persistence
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        state.isLoggedIn = true;
+                        state.userEmail = user.email;
+                        // Ideally fetch user profile from Firestore here
+                        setView('create');
+                    } else {
+                        render(); // Render Landing
+                    }
+                });
+            }
+            
+            render();
+        }
+
+        // Start the app
         init();
+
     </script>
 </body>
 </html>

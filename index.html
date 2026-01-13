@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -561,7 +561,14 @@ auth = getAuth(app);
 
                                             </div>
                                         ` : `
-                                            <input type="text" oninput="updateFriendAnswer(${idx}, this.value)" placeholder="The answer is..." class="w-full p-5 bg-rose-50/50 border-2 border-transparent focus:border-rose-200 rounded-pookie text-rose-900 outline-none">
+                                            <input 
+    type="text" 
+    oninput="updateFriendAnswer(${idx}, this.value)" 
+    value="${state.friendAnswers[idx] || ''}" 
+    placeholder="The answer is..." 
+    class="w-full p-5 bg-rose-50/50 border-2 border-transparent focus:border-rose-200 rounded-pookie text-rose-900 outline-none"
+>
+
                                         `}
                                     </div>
                                 `).join('')}
@@ -1028,3 +1035,4 @@ window.handleStartOwnQuiz = () => {
     </script>
 </body>
 </html>
+         

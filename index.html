@@ -383,15 +383,14 @@ auth = getAuth(app);
                                     ${state.questions.length === 0 ? '<div class="text-center text-rose-300 text-xs italic">Tap below to add a question!</div>' : ''}
                                     ${state.questions.map((q, idx) => `
                                         <div class="bg-white p-5 rounded-pookie shadow-sm border-2 border-rose-50 space-y-3 relative">
-                                            <button onclick="removeQuestion(${idx})" class="p-1 -mr-2 -mt-2 text-rose-200 hover:text-rose-400 transition-colors">
-                                                <i data-lucide="x-circle" size="20"></i>
+                                            <button onclick="removeQuestion(${idx})" class="absolute top-4 right-4 text-rose-200">
+                                                <i data-lucide="x-circle" size="18"></i>
                                             </button>
-                                            <div class="flex justify-between items-start mb-2">
-                                                   <div class="space-y-1">
+                                            <div class="flex justify-between items-center">
                                                 <div class="text-[10px] font-black text-rose-200 uppercase tracking-widest">Question ${idx + 1}</div>
                                                 <label class="flex items-center cursor-pointer gap-2">
                                                     <span class="text-[10px] font-black text-rose-300 uppercase">Multiple Choice</span>
-                                                    <input type="checkbox" ${q.isMultipleChoice ? 'checked' : ''h-3 w-3} 
+                                                    <input type="checkbox" ${q.isMultipleChoice ? 'checked' : ''} 
                                                         onchange="toggleMultipleChoice(${idx})" class="accent-rose-400">
                                                 </label>
                                             </div>
@@ -411,7 +410,7 @@ auth = getAuth(app);
                                                             <input type="text" placeholder="Option ${optIdx + 1}" value="${opt}"
                                                                 oninput="updateOption(${idx}, ${optIdx}, this.value)"
                                                                 class="flex-1 p-2 bg-rose-50/30 rounded-lg text-xs font-bold text-rose-600 outline-none border border-rose-100">
-                                                            ${q.options.length > 2 ? `<button onclick="removeOption(${idx}, ${optIdx})" class="text-rose-200 hover:text-rose-400 transition-colors"><i data-lucide="minus-circle" size="14"></i></button>` : ''}
+                                                            ${q.options.length > 2 ? `<button onclick="removeOption(${idx}, ${optIdx})" class="text-rose-200"><i data-lucide="minus-circle" size="14"></i></button>` : ''}
                                                         </div>
                                                     `).join('')}
                                                     ${q.options.length < 6 ? `

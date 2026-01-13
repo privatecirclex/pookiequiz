@@ -117,7 +117,7 @@
         const DEV_MODE = location.protocol === 'file:' || location.hostname === 'localhost';
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 
         let app, db, auth;
@@ -156,9 +156,7 @@ auth = getAuth(app);
                 element: '', 
                 vibe: '', 
                 emoji: '🧸', 
-                knownFor: '',
-                email: '',
-                password: ''
+                knownFor: '' 
             },
             selectedMode: 'friends',
             questions: [],
@@ -170,11 +168,7 @@ auth = getAuth(app);
             attempts: [],
             editDraft: {},
             showDashboardConfirm: false,
-            showProfileEditor: false,
-            previousView: 'landing',
-            showDeleteId: null,
-            selectedAttemptDetails: null,
-            detailTab: 'correct'
+            showProfileEditor: false
         };
 
         // Load State from LocalStorage
@@ -316,9 +310,6 @@ auth = getAuth(app);
             else if (state.view === 'profile') {
                 content = `
                 <div class="no-scroll bg-[#FFF9FB] p-6 flex flex-col items-center">
-                    <button onclick="setView('auth')" class="absolute top-6 left-6 p-3 bg-white text-rose-400 rounded-full shadow-md z-50">
-                        <i data-lucide="arrow-left" size="24"></i>
-                    </button>
                     <div class="glitter-boundary"></div>
                     <div class="w-full max-w-md space-y-6 mt-4 relative z-10">
                         <div class="text-left space-y-2">
@@ -326,20 +317,6 @@ auth = getAuth(app);
                             <p class="text-rose-400 text-sm font-bold">Let's make it personal before we start.</p>
                         </div>
                         <div class="bg-white rounded-pookie p-6 shadow-xl border-2 border-rose-50 space-y-5">
-                            <div>
-                                <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">Email 📧</label>
-                                <input type="email" id="prof-email" value="${state.profile.email || ''}" oninput="handleProfileLiveUpdate('email', this.value)" class="w-full p-4 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="pookie@example.com">
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">Password</label>
-                                    <input type="password" id="prof-pass" oninput="handleProfileLiveUpdate('password', this.value)" class="w-full p-4 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="••••">
-                                </div>
-                                <div>
-                                    <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">Confirm</label>
-                                    <input type="password" id="prof-pass-confirm" class="w-full p-4 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="••••">
-                                </div>
-                            </div>
                             <div>
                                 <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">What do pookies call you? 💗</label>
                                 <input type="text" id="prof-name" value="${state.profile.name}" oninput="handleProfileLiveUpdate('name', this.value)" class="w-full p-4 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="e.g. Bubbles">
@@ -369,24 +346,6 @@ auth = getAuth(app);
                 </div>
             `;
             } 
-            else if (state.view === 'guest_init') {
-                content = `
-                <div class="no-scroll bg-[#FFF9FB] p-6 flex flex-col items-center justify-center">
-                    <button onclick="setView('auth')" class="absolute top-6 left-6 p-3 bg-white text-rose-400 rounded-full shadow-md z-50">
-                        <i data-lucide="arrow-left" size="24"></i>
-                    </button>
-                    <div class="w-full max-w-md space-y-8 text-center">
-                        <h2 class="text-4xl font-black text-rose-900">Hey Guest! 👻</h2>
-                        <div class="bg-white p-8 rounded-pookie shadow-xl border-2 border-rose-50 space-y-6">
-                            <div>
-                                <label class="block text-rose-300 font-black text-xs uppercase mb-2">What's your name?</label>
-                                <input type="text" id="guest-name" class="w-full p-5 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-black text-rose-700 text-center text-2xl" placeholder="Pookie">
-                            </div>
-                            <button onclick="confirmGuest()" class="w-full py-5 btn-primary rounded-pookie font-bold text-xl">Let's Go! ✨</button>
-                        </div>
-                    </div>
-                </div>`;
-            }
             else if (state.view === 'create') {
                 content = `
                     <div class="no-scroll bg-[#FFF9FB] p-4 flex flex-col items-center">
@@ -402,10 +361,9 @@ auth = getAuth(app);
                                         <p class="text-lg font-black text-rose-900 leading-none">${state.profile.name}</p>
                                     </div>
                                 </div>
-<button onclick="state.previousView='create'; state.view='dashboard'; if(state.quizId) loadAttempts(state.quizId); render();" class="p-2 bg-white rounded-full text-rose-400 hover:text-rose-600 shadow-sm border-2 border-rose-100" title="View Dashboard">
-    <i data-lucide="layout-dashboard" size="18"></i>
-</button>
-
+                                <button onclick="handleLogout()" class="p-2 bg-white rounded-full text-rose-300 hover:text-rose-500 shadow-sm border border-rose-100">
+                                    <i data-lucide="log-out" size="18"></i>
+                                </button>
                             </div>
                             <div class="grid grid-cols-3 gap-2 mb-6">
                                 ${Object.keys(MODES).map(key => `
@@ -416,7 +374,7 @@ auth = getAuth(app);
                                     </button>
                                 `).join('')}
                             </div>
-                            <div class="flex-1 overflow-y-auto pr-1 space-y-4 pb-32" style="scrollbar-width: none; -ms-overflow-style: none;">
+                            <div class="flex-1 overflow-y-auto pr-1 space-y-4 pb-24" style="scrollbar-width: none; -ms-overflow-style: none;">
                                 <div class="text-center pb-2">
                                     <h2 class="text-2xl font-black text-rose-900 leading-tight">Craft Your Secrets 🎀</h2>
                                     <p class="text-rose-400 text-xs font-bold italic">What should your ${MODES[state.selectedMode].label} know?</p>
@@ -471,8 +429,8 @@ auth = getAuth(app);
                                     <span>Add another secret...</span>
                                 </button>
                             </div>
-                            <div class="sticky bottom-0 left-0 right-0 py-4 bg-gradient-to-t from-[#FFF9FB] to-transparent z-50">
-                                <button onclick="handleCreateQuiz()" class="w-full py-5 btn-primary rounded-pill-pookie font-bold text-xl shadow-lg">
+                            <div class="absolute bottom-4 left-0 right-0 pt-4 bg-gradient-to-t from-[#FFF9FB] to-transparent">
+                               <button onclick="handleShowPreview()" class="w-full py-5 btn-primary rounded-pill-pookie font-bold text-xl shadow-lg">
                                     Create My Pookie Link 🪄
                                 </button>
                             </div>
@@ -480,6 +438,35 @@ auth = getAuth(app);
                     </div>
                 `;
             } 
+            else if (state.view === 'preview') {
+    const modeLabel = MODES[state.selectedMode].label;
+    content = `
+        <div class="no-scroll bg-[#FFF9FB] p-6 flex flex-col items-center">
+            <div class="w-full max-w-md space-y-6 pb-32">
+                <h2 class="text-2xl font-black text-rose-900 text-center">Review Your Quiz ✨</h2>
+                <div class="space-y-3">
+                    ${state.questions.map((q, idx) => `
+                        <div class="bg-white p-4 rounded-pookie border-2 border-rose-50 flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] font-black text-rose-200">QUESTION ${idx + 1}</p>
+                                <p class="font-bold text-rose-900">${q.question || '...'}</p>
+                            </div>
+                            <button onclick="editQuestion(${idx})" class="text-rose-300"><i data-lucide="edit-3" size="18"></i></button>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="bg-rose-50 p-4 rounded-pookie border-2 border-dashed border-rose-200">
+                    <label class="block text-rose-900 font-black text-xs uppercase mb-2">Message to your ${modeLabel}?</label>
+                    <textarea oninput="state.message = this.value" class="w-full p-3 rounded-2xl border-none font-bold text-rose-700 text-sm" rows="2" placeholder="Optional message...">${state.message || ''}</textarea>
+                </div>
+                <div class="fixed bottom-6 left-0 right-0 px-6 max-w-md mx-auto">
+                    <button onclick="confirmFinalCreation()" class="w-full py-5 btn-primary rounded-pill-pookie font-bold text-xl">Confirm & Get Link 🪄</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
             else if (state.view === 'share') {
                 content = `
                     <div class="min-h-screen bg-rose-50/20 p-6 flex flex-col items-center justify-center text-center space-y-10 relative">
@@ -503,7 +490,7 @@ auth = getAuth(app);
                             <button onclick="showSoon()" class="flex items-center justify-center gap-2 p-4 bg-white text-rose-400 border-2 border-rose-100 rounded-pookie font-bold text-xs"><i data-lucide="instagram" size="20"></i>IG Story</button>
                             <button onclick="showSoon()" class="flex items-center justify-center gap-2 p-4 bg-white text-rose-400 border-2 border-rose-100 rounded-pookie font-bold text-xs"><i data-lucide="message-circle" size="20"></i>Messages</button>
                         </div>
-                        <button onclick="state.previousView='share'; openDashboardConfirm()" class="text-rose-300 font-black uppercase tracking-widest text-[10px]">
+                        <button onclick="openDashboardConfirm()" class="text-rose-300 font-black uppercase tracking-widest text-[10px]">
                            View Dashboard
                         </button>
                     </div>
@@ -591,12 +578,9 @@ auth = getAuth(app);
                 content = `
                     <div class="min-h-screen bg-[#FFFDFE] p-6 md:max-w-xl md:mx-auto space-y-6 pb-24">
                         <header class="flex items-center justify-between py-6">
-                            <div class="flex items-center gap-4">
-                                <button onclick="setView(state.previousView)" class="p-3 bg-white text-rose-300 rounded-full border-2 border-rose-50 shadow-sm"><i data-lucide="arrow-left" size="20"></i></button>
-                                <div class="space-y-1">
-                                    <h1 class="text-3xl font-black text-rose-900">Results! ✨</h1>
-                                    <p class="text-rose-300 font-bold text-xs leading-none">Checking up on ${state.activeQuiz ? state.activeQuiz.creatorName : 'pookie'}'s pookies</p>
-                                </div>
+                            <div class="space-y-1">
+                                <h1 class="text-3xl font-black text-rose-900">Results! ✨</h1>
+                                <p class="text-rose-300 font-bold">Checking up on ${state.activeQuiz.creatorName}'s pookies</p>
                             </div>
                              <div class="flex gap-2">
                                 <button onclick="handleLogout()" class="p-4 bg-white rounded-pill-pookie shadow-sm text-rose-300 border-2 border-rose-50"><i data-lucide="log-out" size="24"></i></button>
@@ -624,34 +608,20 @@ auth = getAuth(app);
                             ` : `
                                 <div class="space-y-4">
                                     ${sortedAttempts.map((attempt, idx) => `
-                                        <div class="relative group">
-                                            <div onclick="openAttemptDetails(${idx})" class="cursor-pointer bg-white p-6 rounded-pookie flex items-center justify-between shadow-sm border-2 border-rose-50 hover:border-rose-200 transition-all">
-                                                <div class="flex items-center gap-5">
-                                                    <div class="w-14 h-14 rounded-3xl flex items-center justify-center text-xl font-black ${idx === 0 ? 'bg-yellow-100 text-yellow-500' : 'bg-rose-50 text-rose-300'}">
-                                                        ${idx === 0 ? '👑' : attempt.friendName.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <h4 class="font-black text-rose-900 text-lg">${attempt.friendName}</h4>
-                                                        <p class="text-[10px] text-rose-200 font-black uppercase tracking-widest">${new Date(attempt.timestamp).toLocaleDateString()}</p>
-                                                    </div>
+                                        <div class="bg-white p-6 rounded-pookie flex items-center justify-between shadow-sm border-2 border-rose-50">
+                                            <div class="flex items-center gap-5">
+                                                <div class="w-14 h-14 rounded-3xl flex items-center justify-center text-xl font-black ${idx === 0 ? 'bg-yellow-100 text-yellow-500' : 'bg-rose-50 text-rose-300'}">
+                                                    ${idx === 0 ? '👑' : attempt.friendName.charAt(0)}
                                                 </div>
-                                                <div class="flex items-center gap-3">
-                                                    <div class="bg-rose-50 px-4 py-2 rounded-2xl">
-                                                        <span class="text-xl font-black text-rose-500">${attempt.score}</span>
-                                                        <span class="text-[10px] font-black text-rose-200">/${attempt.total}</span>
-                                                    </div>
-                                                    <button onclick="event.stopPropagation(); toggleDeleteMenu('${attempt.timestamp}')" class="p-2 text-rose-200 hover:text-rose-400">
-                                                        <i data-lucide="more-vertical" size="18"></i>
-                                                    </button>
+                                                <div>
+                                                    <h4 class="font-black text-rose-900 text-lg">${attempt.friendName}</h4>
+                                                    <p class="text-[10px] text-rose-200 font-black uppercase tracking-widest">${new Date(attempt.timestamp).toLocaleDateString()}</p>
                                                 </div>
                                             </div>
-                                            ${state.showDeleteId == attempt.timestamp ? `
-                                                <div class="absolute right-0 top-16 bg-white shadow-2xl rounded-2xl border-2 border-rose-50 z-[60] p-2 min-w-[120px]">
-                                                    <button onclick="deleteAttempt('${attempt.timestamp}')" class="w-full text-left px-4 py-2 text-red-500 font-black text-xs uppercase flex items-center gap-2 hover:bg-rose-50 rounded-xl">
-                                                        <i data-lucide="trash-2" size="14"></i> Delete
-                                                    </button>
-                                                </div>
-                                            ` : ''}
+                                            <div class="bg-rose-50 px-4 py-2 rounded-2xl">
+                                                <span class="text-xl font-black text-rose-500">${attempt.score}</span>
+                                                <span class="text-[10px] font-black text-rose-200">/${attempt.total}</span>
+                                            </div>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -724,49 +694,10 @@ auth = getAuth(app);
                             </button>
                             <button onclick="closeProfileEditor()" class="flex-1 py-4 bg-rose-50 text-rose-400 rounded-pookie font-bold border-2 border-rose-100">Cancel</button>
                         </div>
-<button onclick="handleLogout()" 
-    class="w-full py-3 mt-2 bg-rose-50 rounded-2xl font-black text-rose-300 text-[10px] uppercase tracking-widest hover:text-rose-500 transition flex items-center justify-center gap-2">
-    <i data-lucide="log-out" size="14"></i>
-    Logout & Leave Pookies 😢
-</button>
-                    </div>
-                </div>`;
-                root.appendChild(modal);
-            }
-
-            if (state.selectedAttemptDetails !== null) {
-                const attempt = state.attempts[state.selectedAttemptDetails];
-                const modal = document.createElement('div');
-                modal.className = "fixed inset-0 z-[1001] bg-rose-900/40 backdrop-blur-sm flex items-center justify-center p-4";
-                modal.onclick = (e) => { if(e.target === modal) { state.selectedAttemptDetails = null; render(); } };
-                
-                const filteredQuestions = state.activeQuiz.questions.map((q, idx) => {
-                    const friendAns = (attempt.answers[idx] || '').trim().toLowerCase();
-                    const correctAns = (q.correctAnswer || '').trim().toLowerCase();
-                    return { ...q, friendAns: attempt.answers[idx], isCorrect: friendAns === correctAns, originalIdx: idx };
-                }).filter(q => state.detailTab === 'correct' ? q.isCorrect : !q.isCorrect);
-
-                modal.innerHTML = `
-                <div class="bg-white rounded-[2.5rem] w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-toast-enter">
-                    <div class="p-6 bg-rose-50 border-b-2 border-rose-100">
-                        <h3 class="text-xl font-black text-rose-900">${attempt.friendName}'s Answers</h3>
-                        <div class="flex gap-2 mt-4">
-                            <button onclick="state.detailTab='correct'; render();" class="flex-1 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${state.detailTab === 'correct' ? 'bg-rose-400 text-white' : 'bg-white text-rose-300'}">✅ Correct</button>
-                            <button onclick="state.detailTab='incorrect'; render();" class="flex-1 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${state.detailTab === 'incorrect' ? 'bg-rose-400 text-white' : 'bg-white text-rose-300'}">❌ Incorrect</button>
-                        </div>
-                    </div>
-                    <div class="flex-1 overflow-y-auto p-6 space-y-4">
-                        ${filteredQuestions.length === 0 ? `<p class="text-center text-rose-200 italic py-10">Nothing to see here! ✨</p>` : ''}
-                        ${filteredQuestions.map(q => `
-                            <div class="p-4 rounded-2xl bg-rose-50/30 border border-rose-100">
-                                <p class="text-xs font-black text-rose-300 uppercase mb-1">Question ${q.originalIdx + 1}</p>
-                                <p class="font-bold text-rose-900 mb-2">${q.question || q.text}</p>
-                                <div class="space-y-1">
-                                    <p class="text-sm font-bold text-rose-500">Pookie said: <span class="text-rose-400">${q.friendAns || '(empty)'}</span></p>
-                                    ${state.detailTab === 'incorrect' ? `<p class="text-sm font-black text-green-500 italic">Correct: ${q.correctAnswer}</p>` : ''}
-                                </div>
-                            </div>
-                        `).join('')}
+                        <button onclick="state.showProfileEditor=false; setView('dashboard'); render();" 
+                            class="w-full py-3 bg-rose-100/50 rounded-2xl font-black text-rose-400 text-[10px] uppercase tracking-widest hover:bg-rose-100 transition">
+                            Go to Results Dashboard 🖥️
+                        </button>
                     </div>
                 </div>`;
                 root.appendChild(modal);
@@ -788,17 +719,44 @@ auth = getAuth(app);
             state.friendName = '';
             state.friendAnswers = [];
             
-            // 2. IMPORTANT: Clear the questions list so it's empty for the new creator
-            state.questions = []; 
-            
             // Clean the URL so it doesn't try to load the old quiz
             const url = new URL(window.location);
             url.searchParams.delete('q');
             window.history.pushState({}, '', url);
 
-            // Authentication Flow: Open Auth Page
-            setView('auth');
+            // Redirect based on whether they have a profile
+            if (state.profileCompleted) {
+                setView('create');
+            } else {
+                setView('profile');
+            }
         };
+
+
+                       window.handleStartOwnQuiz = () => {
+            // 1. Reset everything for a fresh quiz
+            state.activeQuiz = null;
+            state.quizId = null;
+            state.attemptResult = null;
+            state.friendName = '';
+            state.friendAnswers = [];
+            
+            // 2. IMPORTANT: Clear the questions list so it's empty for the new creator
+            state.questions = []; 
+            
+            // 3. Clean the URL
+            const url = new URL(window.location);
+            url.searchParams.delete('q');
+            window.history.pushState({}, '', url);
+
+            // 4. Send to profile if new, or directly to empty creator
+            if (state.profileCompleted) {
+                setView('create');
+            } else {
+                setView('profile');
+            }
+        };
+
 
         window.handleLogin = () => {
             const email = document.getElementById('login-email').value;
@@ -811,18 +769,11 @@ auth = getAuth(app);
         };
 
         window.handleGuestMode = () => {
-            setView('guest_init');
-        };
-
-        window.confirmGuest = () => {
-            const name = document.getElementById('guest-name').value;
-            if(!name) { alert("What's your pookie name? ✨"); return; }
             state.isLoggedIn = false;
             state.isGuest = true;
-            state.profile.name = name;
-            state.profileCompleted = true;
-            setView('create');
-        }
+            state.userEmail = 'guest';
+            setView('profile');
+        };
 
         window.handleNewProfile = () => {
              state.profile = { ...defaultState.profile };
@@ -874,18 +825,8 @@ auth = getAuth(app);
         window.saveProfile = () => {
             const nameEl = document.getElementById('prof-name');
             const knownEl = document.getElementById('prof-known');
-            const passEl = document.getElementById('prof-pass');
-            const passConfEl = document.getElementById('prof-pass-confirm');
-            
             if(nameEl) state.profile.name = nameEl.value;
             if(knownEl) state.profile.knownFor = knownEl.value;
-            
-            if (!state.isGuest) {
-                if(!state.profile.email) { alert("Pookie needs an email! 📧"); return; }
-                if(!passEl.value || passEl.value !== passConfEl.value) { alert("Passwords must match, pookie! 🔐"); return; }
-                state.profile.password = passEl.value;
-            }
-
             if (!state.profile.name) { alert("What should pookies call you? ✨"); return; }
             state.profileCompleted = true;
             setView('create');
@@ -911,17 +852,54 @@ auth = getAuth(app);
             saveState();
         };
 
-        window.handleCreateQuiz = async () => {
-            if (state.questions.length === 0) { alert("Add at least one question! 🎀"); return; }
-            const id = Math.random().toString(36).substring(2, 8);
-            const newQuiz = { id, creatorName: state.profile.name, creatorId: (!DEV_MODE && auth?.currentUser) ? auth.currentUser.uid : 'anon', mode: state.selectedMode, questions: state.questions, createdAt: Date.now() };
-            if (!DEV_MODE && db) { try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', id), newQuiz); } catch(e) { console.error("Firebase Save Error", e); } } 
-            else { localStorage.setItem('dev_quiz_' + id, JSON.stringify(newQuiz)); }
-            state.quizId = id;
-            state.activeQuiz = newQuiz;
-            state.view = 'share';
-            render();
-        };
+       // Shows the preview page
+window.handleShowPreview = () => {
+    if (state.questions.length === 0) { alert("Add a question first! 🎀"); return; }
+    state.view = 'preview';
+    render();
+};
+
+// Takes user back to editor to fix a specific question
+window.editQuestion = (idx) => {
+    state.view = 'create';
+    render();
+};
+
+// The actual save function
+window.confirmFinalCreation = async () => {
+    const id = Math.random().toString(36).substring(2, 8);
+    const newQuiz = { 
+        id, 
+        creatorName: state.profile.name, 
+        creatorId: auth?.currentUser?.uid || 'anon', 
+        mode: state.selectedMode, 
+        questions: state.questions, 
+        message: state.message || '',
+        createdAt: Date.now() 
+    };
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', id), newQuiz);
+    state.quizId = id;
+    state.activeQuiz = newQuiz;
+    state.view = 'share';
+    render();
+};
+
+// Updated: Fresh start for friends who want to make their own quiz
+window.handleStartOwnQuiz = () => {
+    state.activeQuiz = null;
+    state.quizId = null;
+    state.attemptResult = null;
+    state.questions = []; // Clears old questions
+    state.message = '';
+    
+    const url = new URL(window.location);
+    url.searchParams.delete('q');
+    window.history.pushState({}, '', url);
+
+    if (state.profileCompleted) { setView('create'); } 
+    else { setView('profile'); }
+};
+
 
         window.copyLink = () => {
             const url = `${window.location.origin}${window.location.pathname}?q=${state.quizId}`;
@@ -940,28 +918,6 @@ auth = getAuth(app);
         window.closeProfileEditor = () => { state.showProfileEditor = false; render(); };
         window.handleProfileInput = (field, value) => { state.editDraft[field] = value; render(); };
         window.saveProfileEdits = () => { if (JSON.stringify(state.profile) === JSON.stringify(state.editDraft)) return; state.profile = { ...state.editDraft }; state.showProfileEditor = false; render(); };
-
-        window.toggleDeleteMenu = (id) => { state.showDeleteId = state.showDeleteId == id ? null : id; render(); };
-        window.deleteAttempt = async (timestamp) => {
-            if (!confirm("Are you sure you want to delete this pookie's score? 🥺")) return;
-            const index = state.attempts.findIndex(a => a.timestamp == timestamp);
-            if (index > -1) {
-                const attempt = state.attempts[index];
-                state.attempts.splice(index, 1);
-                if (!DEV_MODE && db && attempt.id) {
-                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attempts', attempt.id)); } catch(e) { console.error(e); }
-                } else {
-                    localStorage.setItem('dev_attempts_' + state.quizId, JSON.stringify(state.attempts));
-                }
-                state.showDeleteId = null;
-                render();
-            }
-        };
-
-        window.openAttemptDetails = (idx) => {
-            state.selectedAttemptDetails = idx;
-            render();
-        };
 
         window.startAttempt = () => {
             const nameInput = document.getElementById('friendNameInput');

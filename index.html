@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KnowMe - Pookie Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #FFF9FB;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .no-scroll {
+            min-height: 100vh;
+            min-height: 100dvh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .btn-primary {
+            background-color: #fb7185;
+            color: white;
+            box-shadow: 0 4px 0 rgb(225, 110, 130);
+            transition: all 0.2s;
+        }
+
+        .btn-primary:active {
+            box-shadow: none;
+            transform: translateY(4px);
+        }
+        
+        .btn-secondary {
+            background-color: #fff0f3;
+            color: #fb7185;
+            border: 2px solid #fbcfe8;
+            box-shadow: 0 4px 0 #fbcfe8;
+            transition: all 0.2s;
+        }
+        
+        .btn-secondary:active {
+            box-shadow: none;
+            transform: translateY(4px);
+        }
+
+        .rounded-pookie { border-radius: 2.5rem; }
+        .rounded-pill-pookie { border-radius: 3.5rem; }
+
+        .animate-pookie-bounce {
+            animation: bounce 5s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0) rotate(3deg) scale(1); }
+            50% { transform: translateY(-30px) rotate(-10deg) scale(1.05); }
+        }
+
+        .glitter-border {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, #fda4af, #fbcfe8, #fda4af, transparent);
+            background-size: 200% 100%;
+            animation: moveGlitter 6s linear infinite;
+            z-index: 50;
+        }
+        
+        .border-h { height: 4px; width: 100%; left: 0; }
+        .border-v { width: 4px; height: 100%; top: 0; }
+        
+        .glitter-boundary {
+            height: 4px;
+            width: 100%;
+            background: linear-gradient(90deg, transparent, #fda4af, #fbcfe8, #fda4af, transparent);
+            background-size: 200% 100%;
+            animation: moveGlitter 6s linear infinite;
+        }
+
+        @keyframes moveGlitter {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Toast Popup Animation */
+        .toast-enter {
+            animation: toastSlideIn 0.3s ease-out forwards;
+        }
+        .toast-exit {
+            animation: toastSlideOut 0.3s ease-in forwards;
+        }
+
+        @keyframes toastSlideIn {
+            from { transform: translateY(100%) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes toastSlideOut {
+            from { transform: translateY(0) scale(1); opacity: 1; }
+            to { transform: translateY(20px) scale(0.9); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-rose-900">
+
+    <div id="app"></div>
+
+    <div id="toast-container" class="fixed bottom-10 left-0 right-0 z-[1000] flex justify-center pointer-events-none"></div>
+
+    <script type="module">
+        // --- CONFIGURATION & SETUP ---
+        const DEV_MODE = location.protocol === 'file:' || location.hostname === 'localhost';
+        
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+
+        let app, db, auth;
+
+       // PASTE THIS NEW CODE
+const firebaseConfig = {
+  apiKey: "AIzaSyCUDWKDMwl3DRVxHvY85K-Y4ceBGPUkAe8",
+  authDomain: "pookiequizlive.firebaseapp.com",
+  projectId: "pookiequizlive",
+  storageBucket: "pookiequizlive.firebasestorage.app",
+  messagingSenderId: "340758596918",
+  appId: "1:340758596918:web:96c439644cc0f4e5217797",
+  measurementId: "G-XB9D8TT1PZ"
+};
+
+// Initialize directly
+app = initializeApp(firebaseConfig);
+db = getFirestore(app);
+auth = getAuth(app);
+
+
+        const appId = 'pookie-quiz-live';
+
+
+        // --- STATE MANAGEMENT ---
+        let defaultState = {
+            view: 'landing',
+            isLoggedIn: false,
+            isGuest: false,
+            userEmail: '',
+            profileCompleted: false,
+            profile: { 
+                name: '', 
+                dob: '', 
+                zodiac: '', 
+                element: '', 
+                vibe: '', 
+                emoji: '🧸', 
+                knownFor: '' 
+            },
+            selectedMode: 'friends',
+            questions: [],
+            activeQuiz: null,
+            quizId: null,
+            friendName: '',
+            friendAnswers: [],
+            attemptResult: null,
+            attempts: [],
+            editDraft: {},
+            showDashboardConfirm: false,
+            showProfileEditor: false
+        };
+
+        // Load State from LocalStorage
+        let state = { ...defaultState };
+        const STORAGE_KEY = 'knowme_pookie_state_v2'; 
+
+        function loadLocalState() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    state = { ...defaultState, ...parsed };
+                    state.showDashboardConfirm = false;
+                    state.showProfileEditor = false;
+                }
+            } catch (e) {
+                console.error("Failed to load state", e);
+            }
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.error("Failed to save state", e);
+            }
+        }
+
+        loadLocalState();
+
+        const MODES = {
+            friends: { label: 'Besties', icon: 'users', emoji: '👯‍♀️' },
+            couple: { label: 'Pookies', icon: 'heart', emoji: '👩‍❤️‍💋‍👨' },
+            crush: { label: 'Crush', icon: 'zap', emoji: '👀' }
+        };
+
+        // --- RENDER ENGINE ---
+        function render() {
+            saveState(); 
+
+            const root = document.getElementById('app');
+            let content = '';
+            
+            document.querySelectorAll('.fixed.inset-0').forEach(el => el.remove()); 
+
+            if (state.view === 'landing') {
+                content = `
+                    <div class="no-scroll bg-[#FFF9FB] p-6 text-center">
+                        <div class="glitter-border border-h top-0"></div>
+                        <div class="glitter-border border-h bottom-0"></div>
+                        <div class="glitter-border border-v left-0"></div>
+                        <div class="glitter-border border-v right-0"></div>
+                        <div class="absolute top-10 left-10 text-rose-200 animate-pookie-bounce"><i data-lucide="heart" fill="currentColor" size="32"></i></div>
+                        <div class="absolute bottom-20 right-10 text-purple-200 animate-pulse"><i data-lucide="stars" fill="currentColor" size="40"></i></div>
+                        <div class="space-y-6 relative z-10 scale-90 md:scale-100 mt-10">
+                           <div class="relative inline-block">
+                                <div class="w-32 h-32 md:w-44 md:h-44 bg-rose-100 rounded-pookie flex items-center justify-center mx-auto mb-6 animate-pookie-bounce shadow-xl border-4 border-white">
+                                    <i data-lucide="candy" class="text-rose-400" size="80"></i>
+                                </div>
+                            </div>
+                            <h1 class="text-4xl md:text-7xl font-black tracking-tight text-rose-900 leading-[1.1]">
+                                How well do your <br /> <span class="text-rose-400 italic">pookies</span> know you?
+                            </h1>
+                            <p class="text-rose-300 text-base md:text-lg font-medium max-w-sm mx-auto">
+                                Create a cute quiz to see who really pays attention to the little things. ✨
+                            </p>
+                        </div>
+                        <div class="w-full max-w-xs space-y-4 mt-8 relative z-10">
+                          <button onclick="handleStartOwnQuiz()" class="w-full py-4 md:py-5 text-lg md:text-xl btn-primary rounded-pookie font-bold">
+    Let's Start Pookie ! 🎀
+</button>
+
+
+                        </div>
+                    </div>
+                `;
+            } 
+            else if (state.view === 'auth') {
+                content = `
+                <div class="no-scroll bg-[#FFF9FB] p-6 flex flex-col items-center justify-center">
+                    <div class="glitter-boundary"></div>
+                    <div class="w-full max-w-md space-y-6 relative z-10">
+                        <div class="text-center space-y-2 mb-8">
+                            <div class="inline-block p-4 bg-white rounded-full shadow-lg mb-2">
+                                <i data-lucide="lock" class="text-rose-400" size="32"></i>
+                            </div>
+                            <h2 class="text-3xl font-black text-rose-900">Welcome Back 🧸</h2>
+                            <p class="text-rose-300 text-sm font-bold">Log in to manage your pookies!</p>
+                        </div>
+                        <div class="bg-white rounded-pookie p-8 shadow-xl border-2 border-rose-50 space-y-5">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-[10px] font-black text-rose-300 uppercase tracking-widest mb-1 ml-2">Email</label>
+                                    <div class="relative">
+                                        <i data-lucide="mail" class="absolute left-4 top-4 text-rose-200" size="20"></i>
+                                        <input type="email" id="login-email" class="w-full p-4 pl-12 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="pookie@example.com">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black text-rose-300 uppercase tracking-widest mb-1 ml-2">Password</label>
+                                    <div class="relative">
+                                        <i data-lucide="key" class="absolute left-4 top-4 text-rose-200" size="20"></i>
+                                        <input type="password" id="login-pass" class="w-full p-4 pl-12 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="••••••••">
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <button onclick="showSoon()" class="text-[10px] font-bold text-rose-400 hover:text-rose-600">Forgot Password?</button>
+                                </div>
+                            </div>
+                            <button onclick="handleLogin()" class="w-full py-4 btn-primary rounded-pookie font-bold text-lg shadow-lg">
+                                Login ✨
+                            </button>
+                             <div class="flex items-center gap-4 my-2">
+                                <div class="h-[1px] bg-rose-100 flex-1"></div>
+                                <span class="text-[10px] text-rose-200 font-black uppercase">OR</span>
+                                <div class="h-[1px] bg-rose-100 flex-1"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="showSoon()" class="py-3 border-2 border-rose-100 rounded-2xl flex items-center justify-center gap-2 text-rose-400 font-bold text-xs hover:bg-rose-50">
+                                    <i data-lucide="chrome" size="16"></i> Google
+                                </button>
+                                <button onclick="showSoon()" class="py-3 border-2 border-rose-100 rounded-2xl flex items-center justify-center gap-2 text-rose-400 font-bold text-xs hover:bg-rose-50">
+                                    <i data-lucide="facebook" size="16"></i> Facebook
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-3 pt-2">
+                            <button onclick="handleNewProfile()" class="w-full py-4 btn-secondary rounded-pookie font-bold text-rose-500">
+                                Create New Profile 🎀
+                            </button>
+                            <button onclick="handleGuestMode()" class="w-full py-3 text-rose-300 font-black text-xs uppercase tracking-widest hover:text-rose-500">
+                                Continue as Guest 👻
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }
+            else if (state.view === 'profile') {
+                content = `
+                <div class="no-scroll bg-[#FFF9FB] p-6 flex flex-col items-center">
+                    <div class="glitter-boundary"></div>
+                    <div class="w-full max-w-md space-y-6 mt-4 relative z-10">
+                        <div class="text-left space-y-2">
+                            <h2 class="text-2xl font-black text-rose-900">Pookie Profile ✨</h2>
+                            <p class="text-rose-400 text-sm font-bold">Let's make it personal before we start.</p>
+                        </div>
+                        <div class="bg-white rounded-pookie p-6 shadow-xl border-2 border-rose-50 space-y-5">
+                            <div>
+                                <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">What do pookies call you? 💗</label>
+                                <input type="text" id="prof-name" value="${state.profile.name}" oninput="handleProfileLiveUpdate('name', this.value)" class="w-full p-4 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="e.g. Bubbles">
+                            </div>
+                            <div>
+                                <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">Birthday 🎂</label>
+                                <input type="date" id="prof-dob" value="${state.profile.dob}" onchange="handleZodiacCalc(this.value)" class="w-full p-4 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700">
+                                ${state.profile.zodiac ? `<div class="mt-2 inline-flex items-center px-3 py-1 bg-rose-100 text-rose-500 rounded-full text-xs font-black animate-bounce">${state.profile.zodiac} • ${state.profile.element} Baby ✨</div>` : ''}
+                            </div>
+                            <div>
+                                <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">Your Vibe 🧸</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    ${['🌙 Soft', '☀️ Golden', '🌸 Cozy', '🔥 Chaotic', '🐱 Quiet', '🫧 Dreamy'].map(v => `
+                                        <button onclick="updateVibe('${v}')" class="py-2 px-1 text-[10px] font-black rounded-xl border-2 transition-all ${state.profile.vibe === v ? 'border-rose-400 bg-rose-50 text-rose-500 scale-105' : 'border-rose-50 text-rose-300'}">${v}</button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">Known for... 🥲</label>
+                                <input type="text" id="prof-known" value="${state.profile.knownFor}" oninput="handleProfileLiveUpdate('knownFor', this.value)" class="w-full p-4 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="being late but cute...">
+                            </div>
+                        </div>
+                        <button onclick="saveProfile()" class="w-full py-5 btn-primary rounded-pookie font-bold text-xl shadow-lg">
+                            Continue 🎀
+                        </button>
+                    </div>
+                </div>
+            `;
+            } 
+            else if (state.view === 'create') {
+                content = `
+                    <div class="no-scroll bg-[#FFF9FB] p-4 flex flex-col items-center">
+                        <div class="glitter-boundary"></div>
+                        <div class="w-full max-w-md flex flex-col h-full relative z-10">
+                            <div class="flex items-center justify-between mb-4 mt-2">
+                                <div class="flex items-center space-x-3 text-left cursor-pointer" onclick="openProfileEditor()">
+                                    <div class="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-2xl shadow-sm border-2 border-white">
+                                        ${state.profile.emoji || '🧸'}
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-black text-rose-300 uppercase tracking-tighter leading-none mb-1">Creator</p>
+                                        <p class="text-lg font-black text-rose-900 leading-none">${state.profile.name}</p>
+                                    </div>
+                                </div>
+                                <button onclick="handleLogout()" class="p-2 bg-white rounded-full text-rose-300 hover:text-rose-500 shadow-sm border border-rose-100">
+                                    <i data-lucide="log-out" size="18"></i>
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 mb-6">
+                                ${Object.keys(MODES).map(key => `
+                                    <button onclick="setMode('${key}')" 
+                                        class="p-2 rounded-2xl flex flex-col items-center justify-center border-2 transition-all ${state.selectedMode === key ? 'bg-rose-100 border-rose-300 text-rose-600' : 'bg-white border-rose-50 text-rose-300'}">
+                                        <i data-lucide="${MODES[key].icon}" size="16" class="mb-1"></i>
+                                        <span class="text-[10px] font-black uppercase">${MODES[key].label}</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <div class="flex-1 overflow-y-auto pr-1 space-y-4 pb-24" style="scrollbar-width: none; -ms-overflow-style: none;">
+                                <div class="text-center pb-2">
+                                    <h2 class="text-2xl font-black text-rose-900 leading-tight">Craft Your Secrets 🎀</h2>
+                                    <p class="text-rose-400 text-xs font-bold italic">What should your ${MODES[state.selectedMode].label} know?</p>
+                                </div>
+                                <div id="questionsList" class="space-y-4">
+                                    ${state.questions.length === 0 ? '<div class="text-center text-rose-300 text-xs italic">Tap below to add a question!</div>' : ''}
+                                    ${state.questions.map((q, idx) => `
+                                        <div class="bg-white p-5 rounded-pookie shadow-sm border-2 border-rose-50 space-y-3 relative">
+                                            <button onclick="removeQuestion(${idx})" class="absolute top-4 right-4 text-rose-200">
+                                                <i data-lucide="x-circle" size="18"></i>
+                                            </button>
+                                            <div class="flex justify-between items-center">
+                                                <div class="text-[10px] font-black text-rose-200 uppercase tracking-widest">Question ${idx + 1}</div>
+                                                <label class="flex items-center cursor-pointer gap-2">
+                                                    <span class="text-[10px] font-black text-rose-300 uppercase">Multiple Choice</span>
+                                                    <input type="checkbox" ${q.isMultipleChoice ? 'checked' : ''} 
+                                                        onchange="toggleMultipleChoice(${idx})" class="accent-rose-400">
+                                                </label>
+                                            </div>
+                                            <input type="text" placeholder="e.g. My favorite snack?" value="${q.question || ''}" 
+                                                oninput="updateQuestion(${idx}, 'question', this.value)"
+                                                class="w-full font-bold text-rose-900 placeholder-rose-200 outline-none bg-transparent">
+                                            ${!q.isMultipleChoice ? `
+                                                <input type="text" placeholder="The correct answer is..." value="${q.correctAnswer || ''}"
+                                                    oninput="updateQuestion(${idx}, 'correctAnswer', this.value)"
+                                                    class="w-full p-3 bg-rose-50/50 rounded-xl text-sm font-bold text-rose-600 outline-none border-2 border-transparent focus:border-rose-100">
+                                            ` : `
+                                                <div class="space-y-2">
+                                                    ${q.options.map((opt, optIdx) => `
+                                                        <div class="flex gap-2 items-center">
+                                                            <input type="radio" name="correct_${idx}" ${q.correctAnswer === opt && opt !== '' ? 'checked' : ''} 
+                                                                onchange="updateQuestion(${idx}, 'correctAnswer', '${opt}')" class="accent-rose-500">
+                                                            <input type="text" placeholder="Option ${optIdx + 1}" value="${opt}"
+                                                                oninput="updateOption(${idx}, ${optIdx}, this.value)"
+                                                                class="flex-1 p-2 bg-rose-50/30 rounded-lg text-xs font-bold text-rose-600 outline-none border border-rose-100">
+                                                            ${q.options.length > 2 ? `<button onclick="removeOption(${idx}, ${optIdx})" class="text-rose-200"><i data-lucide="minus-circle" size="14"></i></button>` : ''}
+                                                        </div>
+                                                    `).join('')}
+                                                    ${q.options.length < 6 ? `
+                                                        <button onclick="addOption(${idx})" class="text-[10px] font-black text-rose-400 flex items-center gap-1 mt-1">
+                                                            <i data-lucide="plus-circle" size="12"></i> Add Option
+                                                        </button>
+                                                    ` : ''}
+                                                    <p class="text-[9px] text-rose-300 italic">* Select the dot next to the correct answer</p>
+                                                </div>
+                                            `}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <button onclick="addQuestion()" class="w-full py-4 border-2 border-dashed border-rose-200 rounded-pookie text-rose-300 font-black flex items-center justify-center space-x-2">
+                                    <i data-lucide="plus-circle" size="20"></i>
+                                    <span>Add another secret...</span>
+                                </button>
+                            </div>
+                            <div class="absolute bottom-4 left-0 right-0 pt-4 bg-gradient-to-t from-[#FFF9FB] to-transparent">
+                               <button onclick="handleShowPreview()" class="w-full py-5 btn-primary rounded-pill-pookie font-bold text-xl shadow-lg">
+                                    Create My Pookie Link 🪄
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } 
+            else if (state.view === 'preview') {
+    const modeLabel = MODES[state.selectedMode].label;
+    content = `
+        <div class="no-scroll bg-[#FFF9FB] p-6 flex flex-col items-center">
+            <div class="w-full max-w-md space-y-6 pb-32">
+                <h2 class="text-2xl font-black text-rose-900 text-center">Review Your Quiz ✨</h2>
+                <div class="space-y-3">
+                    ${state.questions.map((q, idx) => `
+                        <div class="bg-white p-4 rounded-pookie border-2 border-rose-50 flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] font-black text-rose-200">QUESTION ${idx + 1}</p>
+                                <p class="font-bold text-rose-900">${q.question || '...'}</p>
+                            </div>
+                            <button onclick="editQuestion(${idx})" class="text-rose-300"><i data-lucide="edit-3" size="18"></i></button>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="bg-rose-50 p-4 rounded-pookie border-2 border-dashed border-rose-200">
+                    <label class="block text-rose-900 font-black text-xs uppercase mb-2">Message to your ${modeLabel}?</label>
+                    <textarea oninput="state.message = this.value" class="w-full p-3 rounded-2xl border-none font-bold text-rose-700 text-sm" rows="2" placeholder="Optional message...">${state.message || ''}</textarea>
+                </div>
+                <div class="fixed bottom-6 left-0 right-0 px-6 max-w-md mx-auto">
+                    <button onclick="confirmFinalCreation()" class="w-full py-5 btn-primary rounded-pill-pookie font-bold text-xl">Confirm & Get Link 🪄</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+            else if (state.view === 'share') {
+                content = `
+                    <div class="min-h-screen bg-rose-50/20 p-6 flex flex-col items-center justify-center text-center space-y-10 relative">
+                        <button onclick="setView('create')" class="absolute top-6 left-6 p-3 bg-white text-rose-400 rounded-full shadow-md">
+                            <i data-lucide="arrow-left" size="24"></i>
+                        </button>
+                        <div class="relative">
+                            <div class="w-28 h-28 bg-white text-rose-400 rounded-pill-pookie shadow-xl flex items-center justify-center animate-pookie-bounce">
+                                <i data-lucide="heart" size="56" fill="currentColor"></i>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <h2 class="text-4xl font-black text-rose-900">It's ready! 🎀</h2>
+                            <p class="text-rose-300 font-bold">Send this link to your besties and see who scores highest!</p>
+                        </div>
+                        <div class="w-full max-w-sm p-6 bg-white rounded-pookie shadow-xl border-4 border-rose-100 flex items-center justify-between gap-4">
+                            <p class="text-xs font-bold truncate text-rose-300" id="linkText">${window.location.origin}${window.location.pathname}?q=${state.quizId}</p>
+                            <button onclick="copyLink()" class="p-4 bg-rose-400 text-white rounded-2xl shadow-lg"><i data-lucide="copy" size="20"></i></button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 w-full max-w-sm">
+                            <button onclick="showSoon()" class="flex items-center justify-center gap-2 p-4 bg-white text-rose-400 border-2 border-rose-100 rounded-pookie font-bold text-xs"><i data-lucide="instagram" size="20"></i>IG Story</button>
+                            <button onclick="showSoon()" class="flex items-center justify-center gap-2 p-4 bg-white text-rose-400 border-2 border-rose-100 rounded-pookie font-bold text-xs"><i data-lucide="message-circle" size="20"></i>Messages</button>
+                        </div>
+                        <button onclick="openDashboardConfirm()" class="text-rose-300 font-black uppercase tracking-widest text-[10px]">
+                           View Dashboard
+                        </button>
+                    </div>
+                `;
+            } 
+            else if (state.view === 'attempt') {
+                if (state.attemptResult) {
+                    content = `
+                        <div class="min-h-screen bg-[#FFF9FB] p-6 flex flex-col items-center justify-center text-center space-y-8">
+                            <div class="relative">
+                                <div class="w-40 h-40 rounded-pill-pookie bg-white shadow-2xl border-8 border-rose-50 flex flex-col items-center justify-center">
+                                    <span class="text-5xl font-black text-rose-500">${state.attemptResult.score}</span>
+                                    <span class="text-xs font-black text-rose-200 uppercase tracking-widest">out of ${state.attemptResult.total}</span>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <h2 class="text-3xl font-black text-rose-900">${state.attemptResult.score === state.attemptResult.total ? "Certified Bestie! 💘" : "So Close! ✨"}</h2>
+                                <p class="text-rose-300 font-medium">You finished the quiz for ${state.activeQuiz.creatorName}!</p>
+                            </div>
+                          <button onclick="handleStartOwnQuiz()" class="w-full max-w-xs py-5 btn-primary rounded-pookie font-bold">
+    Create My Own Quiz 🍭
+</button>
+
+                        </div>
+                    `;
+                } else if (!state.friendName) {
+                    content = `
+                        <div class="min-h-screen bg-white p-6 md:max-w-xl md:mx-auto space-y-12">
+                            <header class="text-center space-y-4">
+                                <div class="inline-block p-4 bg-rose-50 rounded-pookie mb-2"><i data-lucide="heart" class="text-rose-400" fill="currentColor" size="32"></i></div>
+                                <h1 class="text-3xl font-black text-rose-900">How well do you know ${state.activeQuiz.creatorName}?</h1>
+                            </header>
+                            <div class="space-y-8 pt-6">
+                                <div class="w-full space-y-2">
+                                    <label class="text-sm font-bold text-rose-300 ml-4">What's your name?</label>
+                                    <input type="text" id="friendNameInput" placeholder="Type it here... 💕" class="w-full p-5 bg-rose-50/50 border-2 border-transparent focus:border-rose-200 rounded-pookie text-rose-900 outline-none">
+                                </div>
+                                <button onclick="startAttempt()" class="w-full py-5 text-xl btn-primary rounded-pookie font-bold">I'm Ready! ✨</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    content = `
+                        <div class="min-h-screen bg-white p-6 md:max-w-xl md:mx-auto space-y-12">
+                            <header class="text-center space-y-4">
+                                <div class="inline-block p-4 bg-rose-50 rounded-pookie mb-2"><i data-lucide="heart" class="text-rose-400" fill="currentColor" size="32"></i></div>
+                                <h1 class="text-3xl font-black text-rose-900">How well do you know ${state.activeQuiz.creatorName}?</h1>
+                            </header>
+                            <div class="space-y-16 pb-32">
+                                ${state.activeQuiz.questions.map((q, idx) => `
+                                    <div class="space-y-4">
+                                        <div class="flex items-center gap-3">
+                                            <span class="w-10 h-10 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-400 font-black text-sm">${idx + 1}</span>
+                                            <h3 class="text-xl font-bold text-rose-900">${q.question || q.text}</h3>
+                                        </div>
+                                        ${q.isMultipleChoice ? `
+                                            <div class="grid grid-cols-1 gap-3">
+                                               ${q.options.map(opt => {
+    // Only skip options that are completely empty strings
+    if (!opt || opt.trim() === '') return ''; 
+    return `
+        <button onclick="handleOptionSelect(${idx}, '${opt}')" 
+            class="w-full p-4 rounded-2xl text-left font-bold transition-all border-2 ${state.friendAnswers[idx] === opt ? 'bg-rose-100 border-rose-400 text-rose-600' : 'bg-rose-50/50 border-transparent text-rose-400'}">
+            ${opt}
+        </button>
+    `;
+}).join('')}
+
+                                            </div>
+                                        ` : `
+                                            <input type="text" oninput="updateFriendAnswer(${idx}, this.value)" placeholder="The answer is..." class="w-full p-5 bg-rose-50/50 border-2 border-transparent focus:border-rose-200 rounded-pookie text-rose-900 outline-none">
+                                        `}
+                                    </div>
+                                `).join('')}
+                                <div class="fixed bottom-8 left-0 right-0 px-6 max-w-xl mx-auto">
+                                    <button onclick="handleSubmitAttempt()" class="w-full py-5 text-xl btn-primary rounded-pookie font-bold shadow-2xl">Finished! 🍬</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } 
+            else if (state.view === 'dashboard') {
+                const sortedAttempts = [...state.attempts].sort((a, b) => b.score - a.score);
+                content = `
+                    <div class="min-h-screen bg-[#FFFDFE] p-6 md:max-w-xl md:mx-auto space-y-6 pb-24">
+                        <header class="flex items-center justify-between py-6">
+                            <div class="space-y-1">
+                                <h1 class="text-3xl font-black text-rose-900">Results! ✨</h1>
+                                <p class="text-rose-300 font-bold">Checking up on ${state.activeQuiz.creatorName}'s pookies</p>
+                            </div>
+                             <div class="flex gap-2">
+                                <button onclick="handleLogout()" class="p-4 bg-white rounded-pill-pookie shadow-sm text-rose-300 border-2 border-rose-50"><i data-lucide="log-out" size="24"></i></button>
+                                <button onclick="setView('share')" class="p-4 bg-white rounded-pill-pookie shadow-sm text-rose-300 border-2 border-rose-50"><i data-lucide="share-2" size="24"></i></button>
+                            </div>
+                        </header>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-rose-50 p-6 rounded-pookie text-center">
+                                <p class="text-[10px] font-black text-rose-300 uppercase tracking-widest mb-1">Total Pookies</p>
+                                <p class="text-4xl font-black text-rose-500">${state.attempts.length}</p>
+                            </div>
+                            <div class="bg-rose-400 text-white p-6 rounded-pookie shadow-xl text-center">
+                                <p class="text-[10px] font-black text-rose-100 uppercase tracking-widest mb-1">Top Score</p>
+                                <p class="text-4xl font-black">${state.attempts.length ? Math.max(...state.attempts.map(a => a.score)) : 0}</p>
+                            </div>
+                        </div>
+                        <div class="space-y-6 pt-4">
+                            <h3 class="font-black text-rose-900 uppercase tracking-widest text-xs flex items-center gap-2">Leaderboard <i data-lucide="stars" size=16 class="text-rose-300"></i></h3>
+                            ${state.attempts.length === 0 ? `
+                                <div class="bg-white p-12 rounded-pookie border-4 border-dashed border-rose-50 text-center space-y-6">
+                                    <i data-lucide="ghost" class="mx-auto text-rose-100" size="48"></i>
+                                    <p class="text-rose-300 font-bold">Waiting for your friends to join the party...</p>
+                                    <button onclick="setView('share')" class="mx-auto py-3 px-6 bg-white text-rose-400 border-2 border-rose-100 rounded-pookie font-bold">Share the Link 🎀</button>
+                                </div>
+                            ` : `
+                                <div class="space-y-4">
+                                    ${sortedAttempts.map((attempt, idx) => `
+                                        <div class="bg-white p-6 rounded-pookie flex items-center justify-between shadow-sm border-2 border-rose-50">
+                                            <div class="flex items-center gap-5">
+                                                <div class="w-14 h-14 rounded-3xl flex items-center justify-center text-xl font-black ${idx === 0 ? 'bg-yellow-100 text-yellow-500' : 'bg-rose-50 text-rose-300'}">
+                                                    ${idx === 0 ? '👑' : attempt.friendName.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-black text-rose-900 text-lg">${attempt.friendName}</h4>
+                                                    <p class="text-[10px] text-rose-200 font-black uppercase tracking-widest">${new Date(attempt.timestamp).toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
+                                            <div class="bg-rose-50 px-4 py-2 rounded-2xl">
+                                                <span class="text-xl font-black text-rose-500">${attempt.score}</span>
+                                                <span class="text-[10px] font-black text-rose-200">/${attempt.total}</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                        </div>
+                        <div class="pt-12 text-center">
+                            <button onclick="setView('create')" class="text-[10px] font-black text-rose-200 uppercase tracking-[0.3em]">Back to Quiz Creator</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            root.innerHTML = content;
+            renderModals(root);
+            lucide.createIcons();
+        }
+
+        function renderModals(root) {
+            if (state.showDashboardConfirm) {
+                const modal = document.createElement('div');
+                modal.innerHTML = `
+                <div class="fixed inset-0 z-[999] flex items-center justify-center bg-rose-100/70 backdrop-blur-md">
+                    <div class="bg-white rounded-pookie p-8 w-[90%] max-w-sm text-center shadow-2xl border-4 border-rose-100 animate-pookie-bounce" style="animation-duration: 1.5s;">
+                        <div class="text-5xl mb-4">🧸</div>
+                        <h2 class="text-2xl font-black text-rose-900 mb-2">Ready for the tea? 👀</h2>
+                        <p class="text-rose-300 font-bold text-sm mb-6">Your pookies might surprise you 💗</p>
+                        <div class="flex gap-4">
+                            <button onclick="confirmDashboard()" class="flex-1 py-4 btn-primary rounded-pookie font-bold">Show me ✨</button>
+                            <button onclick="cancelDashboard()" class="flex-1 py-4 bg-rose-50 text-rose-400 rounded-pookie font-bold border-2 border-rose-100">Not yet 🫣</button>
+                        </div>
+                    </div>
+                </div>`;
+                root.appendChild(modal);
+            }
+
+            if (state.showProfileEditor) {
+                const modal = document.createElement('div');
+                const hasChanges = JSON.stringify(state.profile) !== JSON.stringify(state.editDraft);
+                const activeBar = "bg-rose-50 border-rose-200 opacity-100";
+                const dullBar = "bg-gray-50 border-transparent opacity-60";
+
+                modal.innerHTML = `
+                <div class="fixed inset-0 z-[999] bg-rose-100/70 backdrop-blur-md flex items-center justify-center p-4">
+                    <div class="bg-white p-6 rounded-pookie w-full max-w-sm shadow-2xl border-4 border-rose-100 space-y-5 relative">
+                        <button onclick="closeProfileEditor()" class="absolute top-4 left-4 text-rose-300 hover:text-rose-500 transition">
+                            <i data-lucide="x" size="20"></i>
+                        </button>
+                        <h2 class="text-xl font-black text-rose-900 text-center">Edit Profile 🧸</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[10px] font-black text-rose-300 uppercase tracking-widest mb-1 ml-2">Nickname 💗</label>
+                                <input oninput="handleProfileInput('name', this.value)" value="${state.editDraft.name}"
+                                    class="w-full p-4 rounded-2xl font-bold outline-none text-rose-700 border-2 transition-all ${state.editDraft.name !== state.profile.name ? activeBar : dullBar}">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-rose-300 uppercase tracking-widest mb-1 ml-2">Birthday 🎂</label>
+                                <input type="date" oninput="handleProfileInput('dob', this.value)" value="${state.editDraft.dob || ''}"
+                                    class="w-full p-4 rounded-2xl font-bold outline-none text-rose-700 border-2 transition-all ${state.editDraft.dob !== state.profile.dob ? activeBar : dullBar}">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-rose-300 uppercase tracking-widest mb-1 ml-2">Known for... 🥲</label>
+                                <input oninput="handleProfileInput('knownFor', this.value)" value="${state.editDraft.knownFor}"
+                                    class="w-full p-4 rounded-2xl font-bold outline-none text-rose-700 border-2 transition-all ${state.editDraft.knownFor !== state.profile.knownFor ? activeBar : dullBar}">
+                            </div>
+                        </div>
+                        <div class="flex gap-3 pt-2">
+                            <button id="modal-save-btn" onclick="saveProfileEdits()" 
+                                class="flex-1 py-4 rounded-pookie font-bold shadow-md transition-colors ${hasChanges ? 'bg-rose-900 text-white' : 'bg-rose-200 text-rose-400 cursor-not-allowed'}">
+                                Save ✨
+                            </button>
+                            <button onclick="closeProfileEditor()" class="flex-1 py-4 bg-rose-50 text-rose-400 rounded-pookie font-bold border-2 border-rose-100">Cancel</button>
+                        </div>
+                        <button onclick="state.showProfileEditor=false; setView('dashboard'); render();" 
+                            class="w-full py-3 bg-rose-100/50 rounded-2xl font-black text-rose-400 text-[10px] uppercase tracking-widest hover:bg-rose-100 transition">
+                            Go to Results Dashboard 🖥️
+                        </button>
+                    </div>
+                </div>`;
+                root.appendChild(modal);
+            }
+        }
+
+        // --- GLOBAL EXPORTS ---
+        window.setView = (view) => {
+            state.view = view;
+            render();
+        };
+
+        // NEW: Handles the logic for "Create My Own Quiz"
+        window.handleStartOwnQuiz = () => {
+            // Reset attempt data so the new user starts fresh
+            state.activeQuiz = null;
+            state.quizId = null;
+            state.attemptResult = null;
+            state.friendName = '';
+            state.friendAnswers = [];
+            
+            // Clean the URL so it doesn't try to load the old quiz
+            const url = new URL(window.location);
+            url.searchParams.delete('q');
+            window.history.pushState({}, '', url);
+
+            // Redirect based on whether they have a profile
+            if (state.profileCompleted) {
+                setView('create');
+            } else {
+                setView('profile');
+            }
+        };
+
+
+                       window.handleStartOwnQuiz = () => {
+            // 1. Reset everything for a fresh quiz
+            state.activeQuiz = null;
+            state.quizId = null;
+            state.attemptResult = null;
+            state.friendName = '';
+            state.friendAnswers = [];
+            
+            // 2. IMPORTANT: Clear the questions list so it's empty for the new creator
+            state.questions = []; 
+            
+            // 3. Clean the URL
+            const url = new URL(window.location);
+            url.searchParams.delete('q');
+            window.history.pushState({}, '', url);
+
+            // 4. Send to profile if new, or directly to empty creator
+            if (state.profileCompleted) {
+                setView('create');
+            } else {
+                setView('profile');
+            }
+        };
+
+
+        window.handleLogin = () => {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+            if(!email || !pass) { alert("Please fill in your pookie details! 🥺"); return; }
+            state.isLoggedIn = true;
+            state.isGuest = false;
+            state.userEmail = email;
+            if(state.profileCompleted) { setView('create'); } else { setView('profile'); }
+        };
+
+        window.handleGuestMode = () => {
+            state.isLoggedIn = false;
+            state.isGuest = true;
+            state.userEmail = 'guest';
+            setView('profile');
+        };
+
+        window.handleNewProfile = () => {
+             state.profile = { ...defaultState.profile };
+             state.profileCompleted = false;
+             setView('profile');
+        };
+
+        window.handleLogout = () => {
+            const confirmLogout = confirm("Are you sure you want to leave your pookies? 😢");
+            if(confirmLogout) {
+                localStorage.removeItem(STORAGE_KEY);
+                state = { ...defaultState };
+                location.reload(); 
+            }
+        };
+
+        window.showSoon = () => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast-enter bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 pointer-events-auto mb-2';
+            toast.innerHTML = `<i data-lucide="sparkles" size="16" class="text-yellow-300"></i><span class="text-sm font-bold">Available soon! 🚧</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        };
+
+        window.handleProfileLiveUpdate = (field, value) => {
+            state.profile[field] = value;
+            saveState(); 
+        }
+
+        window.updateVibe = (vibe) => {
+            state.profile.vibe = vibe;
+            render();
+        }
+
+        window.handleZodiacCalc = (dateVal) => {
+            state.profile.dob = dateVal;
+            const z = getZodiac(dateVal);
+            state.profile.zodiac = z.n;
+            state.profile.element = z.e;
+            render();
+        }
+
+        window.saveProfile = () => {
+            const nameEl = document.getElementById('prof-name');
+            const knownEl = document.getElementById('prof-known');
+            if(nameEl) state.profile.name = nameEl.value;
+            if(knownEl) state.profile.knownFor = knownEl.value;
+            if (!state.profile.name) { alert("What should pookies call you? ✨"); return; }
+            state.profileCompleted = true;
+            setView('create');
+        };
+
+        window.setMode = (mode) => {
+            state.selectedMode = mode;
+            render();
+        };
+
+        window.addQuestion = () => {
+            state.questions.push({ question: '', correctAnswer: '', isMultipleChoice: false, options: ['', ''] });
+            render();
+        };
+
+        window.removeQuestion = (idx) => {
+            state.questions.splice(idx, 1);
+            render();
+        };
+
+        window.updateQuestion = (idx, field, val) => {
+            state.questions[idx][field] = val;
+            saveState();
+        };
+
+       // Shows the preview page
+window.handleShowPreview = () => {
+    if (state.questions.length === 0) { alert("Add a question first! 🎀"); return; }
+    state.view = 'preview';
+    render();
+};
+
+// Takes user back to editor to fix a specific question
+window.editQuestion = (idx) => {
+    state.view = 'create';
+    render();
+};
+
+// The actual save function
+window.confirmFinalCreation = async () => {
+    const id = Math.random().toString(36).substring(2, 8);
+    const newQuiz = { 
+        id, 
+        creatorName: state.profile.name, 
+        creatorId: auth?.currentUser?.uid || 'anon', 
+        mode: state.selectedMode, 
+        questions: state.questions, 
+        message: state.message || '',
+        createdAt: Date.now() 
+    };
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', id), newQuiz);
+    state.quizId = id;
+    state.activeQuiz = newQuiz;
+    state.view = 'share';
+    render();
+};
+
+// Updated: Fresh start for friends who want to make their own quiz
+window.handleStartOwnQuiz = () => {
+    state.activeQuiz = null;
+    state.quizId = null;
+    state.attemptResult = null;
+    state.questions = []; // Clears old questions
+    state.message = '';
+    
+    const url = new URL(window.location);
+    url.searchParams.delete('q');
+    window.history.pushState({}, '', url);
+
+    if (state.profileCompleted) { setView('create'); } 
+    else { setView('profile'); }
+};
+
+
+        window.copyLink = () => {
+            const url = `${window.location.origin}${window.location.pathname}?q=${state.quizId}`;
+            if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => alert("Copied! 🎀")); } 
+            else { alert("Copied! 🎀"); }
+        };
+                   window.handleOptionSelect = (qIdx, value) => {
+            state.friendAnswers[qIdx] = value;
+            render(); // This ensures the UI highlights the selected pink box immediately
+        };
+
+        window.openDashboardConfirm = () => { state.showDashboardConfirm = true; render(); };
+        window.confirmDashboard = () => { state.showDashboardConfirm = false; state.view = 'dashboard'; if(state.quizId) loadAttempts(state.quizId); render(); };
+        window.cancelDashboard = () => { state.showDashboardConfirm = false; render(); };
+        window.openProfileEditor = () => { state.editDraft = { ...state.profile }; state.showProfileEditor = true; render(); };
+        window.closeProfileEditor = () => { state.showProfileEditor = false; render(); };
+        window.handleProfileInput = (field, value) => { state.editDraft[field] = value; render(); };
+        window.saveProfileEdits = () => { if (JSON.stringify(state.profile) === JSON.stringify(state.editDraft)) return; state.profile = { ...state.editDraft }; state.showProfileEditor = false; render(); };
+
+        window.startAttempt = () => {
+            const nameInput = document.getElementById('friendNameInput');
+            if(!nameInput.value) { alert("Tell me your name! 💕"); return; }
+            state.friendName = nameInput.value;
+            render();
+        };
+
+        window.updateFriendAnswer = (idx, val) => {
+            state.friendAnswers[idx] = val;
+            saveState(); 
+        };
+
+        window.handleSubmitAttempt = async () => {
+            let score = 0;
+            state.activeQuiz.questions.forEach((q, idx) => {
+                const friendAns = (state.friendAnswers[idx] || '').trim().toLowerCase();
+                const correctAns = (q.correctAnswer || '').trim().toLowerCase();
+                if (friendAns && correctAns && friendAns === correctAns) score++;
+            });
+            const attempt = { quizId: state.activeQuiz.id, friendName: state.friendName, answers: state.friendAnswers, score, total: state.activeQuiz.questions.length, timestamp: Date.now() };
+            if (!DEV_MODE && db) { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'attempts'), attempt); } 
+            else { const existing = JSON.parse(localStorage.getItem('dev_attempts_' + state.activeQuiz.id) || '[]'); existing.push(attempt); localStorage.setItem('dev_attempts_' + state.activeQuiz.id, JSON.stringify(existing)); }
+            state.attemptResult = attempt;
+            render();
+        };
+
+        const getZodiac = (dateString) => {
+            if(!dateString) return {n: "", e: "", s: ""};
+            const date = new Date(dateString);
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            if ((month == 3 && day >= 21) || (month == 4 && day <= 19)) return {n: "Aries", e: "Fire", s: "♈"};
+            if ((month == 4 && day >= 20) || (month == 5 && day <= 20)) return {n: "Taurus", e: "Earth", s: "♉"};
+            if ((month == 5 && day >= 21) || (month == 6 && day <= 20)) return {n: "Gemini", e: "Air", s: "♊"};
+            if ((month == 6 && day >= 21) || (month == 7 && day <= 22)) return {n: "Cancer", e: "Water", s: "♋"};
+            if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) return {n: "Leo", e: "Fire", s: "♌"};
+            if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return {n: "Virgo", e: "Earth", s: "♍"};
+            if ((month == 9 && day >= 23) || (month == 10 && day <= 22)) return {n: "Libra", e: "Air", s: "♎"};
+            if ((month == 10 && day >= 23) || (month == 11 && day <= 21)) return {n: "Scorpio", e: "Water", s: "♏"};
+            if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) return {n: "Sagittarius", e: "Fire", s: "♐"};
+            if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) return {n: "Capricorn", e: "Earth", s: "♑"};
+            if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) return {n: "Aquarius", e: "Air", s: "♒"};
+            return {n: "Pisces", e: "Water", s: "♓"};
+        };
+
+        window.toggleMultipleChoice = (idx) => { state.questions[idx].isMultipleChoice = !state.questions[idx].isMultipleChoice; render(); };
+        window.addOption = (qIdx) => { if (state.questions[qIdx].options.length < 6) { state.questions[qIdx].options.push(''); render(); } };
+        window.removeOption = (qIdx, optIdx) => { state.questions[qIdx].options.splice(optIdx, 1); render(); };
+        window.updateOption = (qIdx, optIdx, val) => { state.questions[qIdx].options[optIdx] = val; saveState(); };
+
+                async function loadQuiz(id) {
+            let quizData = null;
+            // Fetch the quiz data from Firebase or LocalStorage
+            if (!DEV_MODE && db) { 
+                try { 
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', id)); 
+                    if (snap.exists()) quizData = snap.data(); 
+                } catch(e) { console.error("Load Error", e); } 
+            } else { 
+                const localData = localStorage.getItem('dev_quiz_' + id); 
+                if(localData) quizData = JSON.parse(localData); 
+            }
+
+            if (quizData) { 
+                state.activeQuiz = quizData; 
+                state.quizId = id; 
+                // Always set view to 'attempt' so friends see the quiz questions
+                state.view = 'attempt'; 
+            } else { 
+                alert("Quiz not found! 🥺"); 
+                state.view = 'landing'; 
+            }
+            render();
+        }
+
+
+                // Add "query" and "where" to your imports at the very top of the script if they aren't there
+        // import { ..., query, where } from "..."
+
+        function loadAttempts(id) {
+            if (!DEV_MODE && db) {
+                // Create a reference to the attempts collection
+                const attemptsRef = collection(db, 'artifacts', appId, 'public', 'data', 'attempts');
+                
+                // Set up a real-time listener
+                onSnapshot(attemptsRef, (snapshot) => {
+                    const allAttempts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    // Filter attempts for this specific quiz
+                    state.attempts = allAttempts.filter(a => a.quizId === id);
+                    render(); // Re-render the dashboard automatically when a new friend finishes
+                }, (error) => {
+                    console.error("Dashboard Listener Error:", error);
+                });
+            } else {
+                state.attempts = JSON.parse(localStorage.getItem('dev_attempts_' + id) || '[]');
+                render();
+            }
+        }
+
+        async function init() {
+            if (!DEV_MODE && auth) { try { await signInAnonymously(auth); } catch(e) { console.error("Auth Error", e); } }
+            const params = new URLSearchParams(window.location.search);
+            const qId = params.get('q');
+            if (qId) { await loadQuiz(qId); } else { render(); }
+        } 
+        init();
+    </script>
+</body>
+</html>

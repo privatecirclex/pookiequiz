@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -118,9 +117,8 @@
         const DEV_MODE = location.protocol === 'file:' || location.hostname === 'localhost';
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
-        // ADDED: Added signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut to imports for Auth Logic
-        import { getAuth, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 
         let app, db, auth;
 
@@ -158,9 +156,7 @@ auth = getAuth(app);
                 element: '', 
                 vibe: '', 
                 emoji: '🧸', 
-                knownFor: '',
-                email: '',
-                password: ''
+                knownFor: '' 
             },
             selectedMode: 'friends',
             questions: [],
@@ -172,11 +168,7 @@ auth = getAuth(app);
             attempts: [],
             editDraft: {},
             showDashboardConfirm: false,
-            showProfileEditor: false,
-            previousView: 'landing',
-            showDeleteId: null,
-            selectedAttemptDetails: null,
-            detailTab: 'correct'
+            showProfileEditor: false
         };
 
         // Load State from LocalStorage
@@ -318,9 +310,6 @@ auth = getAuth(app);
             else if (state.view === 'profile') {
                 content = `
                 <div class="no-scroll bg-[#FFF9FB] p-6 flex flex-col items-center">
-                    <button onclick="setView('auth')" class="absolute top-6 left-6 p-3 bg-white text-rose-400 rounded-full shadow-md z-50">
-                        <i data-lucide="arrow-left" size="24"></i>
-                    </button>
                     <div class="glitter-boundary"></div>
                     <div class="w-full max-w-md space-y-6 mt-4 relative z-10">
                         <div class="text-left space-y-2">
@@ -328,20 +317,6 @@ auth = getAuth(app);
                             <p class="text-rose-400 text-sm font-bold">Let's make it personal before we start.</p>
                         </div>
                         <div class="bg-white rounded-pookie p-6 shadow-xl border-2 border-rose-50 space-y-5">
-                            <div>
-                                <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">Email 📧</label>
-                                <input type="email" id="prof-email" value="${state.profile.email || ''}" oninput="handleProfileLiveUpdate('email', this.value)" class="w-full p-4 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="pookie@example.com">
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">Password</label>
-                                    <input type="password" id="prof-pass" oninput="handleProfileLiveUpdate('password', this.value)" class="w-full p-4 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="••••">
-                                </div>
-                                <div>
-                                    <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">Confirm</label>
-                                    <input type="password" id="prof-pass-confirm" class="w-full p-4 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="••••">
-                                </div>
-                            </div>
                             <div>
                                 <label class="block text-rose-900 font-black text-xs mb-2 uppercase tracking-wider">What do pookies call you? 💗</label>
                                 <input type="text" id="prof-name" value="${state.profile.name}" oninput="handleProfileLiveUpdate('name', this.value)" class="w-full p-4 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-bold text-rose-700" placeholder="e.g. Bubbles">
@@ -371,24 +346,6 @@ auth = getAuth(app);
                 </div>
             `;
             } 
-            else if (state.view === 'guest_init') {
-                content = `
-                <div class="no-scroll bg-[#FFF9FB] p-6 flex flex-col items-center justify-center">
-                    <button onclick="setView('auth')" class="absolute top-6 left-6 p-3 bg-white text-rose-400 rounded-full shadow-md z-50">
-                        <i data-lucide="arrow-left" size="24"></i>
-                    </button>
-                    <div class="w-full max-w-md space-y-8 text-center">
-                        <h2 class="text-4xl font-black text-rose-900">Hey Guest! 👻</h2>
-                        <div class="bg-white p-8 rounded-pookie shadow-xl border-2 border-rose-50 space-y-6">
-                            <div>
-                                <label class="block text-rose-300 font-black text-xs uppercase mb-2">What's your name?</label>
-                                <input type="text" id="guest-name" class="w-full p-5 bg-rose-50/30 rounded-2xl border-2 border-transparent focus:border-rose-200 outline-none font-black text-rose-700 text-center text-2xl" placeholder="Pookie">
-                            </div>
-                            <button onclick="confirmGuest()" class="w-full py-5 btn-primary rounded-pookie font-bold text-xl">Let's Go! ✨</button>
-                        </div>
-                    </div>
-                </div>`;
-            }
             else if (state.view === 'create') {
                 content = `
                     <div class="no-scroll bg-[#FFF9FB] p-4 flex flex-col items-center">
@@ -404,10 +361,9 @@ auth = getAuth(app);
                                         <p class="text-lg font-black text-rose-900 leading-none">${state.profile.name}</p>
                                     </div>
                                 </div>
-<button onclick="handleOpenDashboard('create')" class="p-2 bg-white rounded-full text-rose-400 hover:text-rose-600 shadow-sm border-2 border-rose-100" title="View Dashboard">
-    <i data-lucide="layout-dashboard" size="18"></i>
-</button>
-
+                                <button onclick="handleLogout()" class="p-2 bg-white rounded-full text-rose-300 hover:text-rose-500 shadow-sm border border-rose-100">
+                                    <i data-lucide="log-out" size="18"></i>
+                                </button>
                             </div>
                             <div class="grid grid-cols-3 gap-2 mb-6">
                                 ${Object.keys(MODES).map(key => `
@@ -418,7 +374,7 @@ auth = getAuth(app);
                                     </button>
                                 `).join('')}
                             </div>
-                            <div class="flex-1 overflow-y-auto pr-1 space-y-4 pb-32" style="scrollbar-width: none; -ms-overflow-style: none;">
+                            <div class="flex-1 overflow-y-auto pr-1 space-y-4 pb-24" style="scrollbar-width: none; -ms-overflow-style: none;">
                                 <div class="text-center pb-2">
                                     <h2 class="text-2xl font-black text-rose-900 leading-tight">Craft Your Secrets 🎀</h2>
                                     <p class="text-rose-400 text-xs font-bold italic">What should your ${MODES[state.selectedMode].label} know?</p>
@@ -473,8 +429,8 @@ auth = getAuth(app);
                                     <span>Add another secret...</span>
                                 </button>
                             </div>
-                            <div class="sticky bottom-0 left-0 right-0 py-4 bg-gradient-to-t from-[#FFF9FB] to-transparent z-50">
-                                <button onclick="handleCreateQuiz()" class="w-full py-5 btn-primary rounded-pill-pookie font-bold text-xl shadow-lg">
+                            <div class="absolute bottom-4 left-0 right-0 pt-4 bg-gradient-to-t from-[#FFF9FB] to-transparent">
+                               <button onclick="handleShowPreview()" class="w-full py-5 btn-primary rounded-pill-pookie font-bold text-xl shadow-lg">
                                     Create My Pookie Link 🪄
                                 </button>
                             </div>
@@ -482,6 +438,35 @@ auth = getAuth(app);
                     </div>
                 `;
             } 
+            else if (state.view === 'preview') {
+    const modeLabel = MODES[state.selectedMode].label;
+    content = `
+        <div class="no-scroll bg-[#FFF9FB] p-6 flex flex-col items-center">
+            <div class="w-full max-w-md space-y-6 pb-32">
+                <h2 class="text-2xl font-black text-rose-900 text-center">Review Your Quiz ✨</h2>
+                <div class="space-y-3">
+                    ${state.questions.map((q, idx) => `
+                        <div class="bg-white p-4 rounded-pookie border-2 border-rose-50 flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] font-black text-rose-200">QUESTION ${idx + 1}</p>
+                                <p class="font-bold text-rose-900">${q.question || '...'}</p>
+                            </div>
+                            <button onclick="editQuestion(${idx})" class="text-rose-300"><i data-lucide="edit-3" size="18"></i></button>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="bg-rose-50 p-4 rounded-pookie border-2 border-dashed border-rose-200">
+                    <label class="block text-rose-900 font-black text-xs uppercase mb-2">Message to your ${modeLabel}?</label>
+                    <textarea oninput="state.message = this.value" class="w-full p-3 rounded-2xl border-none font-bold text-rose-700 text-sm" rows="2" placeholder="Optional message...">${state.message || ''}</textarea>
+                </div>
+                <div class="fixed bottom-6 left-0 right-0 px-6 max-w-md mx-auto">
+                    <button onclick="confirmFinalCreation()" class="w-full py-5 btn-primary rounded-pill-pookie font-bold text-xl">Confirm & Get Link 🪄</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
             else if (state.view === 'share') {
                 content = `
                     <div class="min-h-screen bg-rose-50/20 p-6 flex flex-col items-center justify-center text-center space-y-10 relative">
@@ -505,7 +490,7 @@ auth = getAuth(app);
                             <button onclick="showSoon()" class="flex items-center justify-center gap-2 p-4 bg-white text-rose-400 border-2 border-rose-100 rounded-pookie font-bold text-xs"><i data-lucide="instagram" size="20"></i>IG Story</button>
                             <button onclick="showSoon()" class="flex items-center justify-center gap-2 p-4 bg-white text-rose-400 border-2 border-rose-100 rounded-pookie font-bold text-xs"><i data-lucide="message-circle" size="20"></i>Messages</button>
                         </div>
-                        <button onclick="state.previousView='share'; openDashboardConfirm()" class="text-rose-300 font-black uppercase tracking-widest text-[10px]">
+                        <button onclick="openDashboardConfirm()" class="text-rose-300 font-black uppercase tracking-widest text-[10px]">
                            View Dashboard
                         </button>
                     </div>
@@ -593,12 +578,9 @@ auth = getAuth(app);
                 content = `
                     <div class="min-h-screen bg-[#FFFDFE] p-6 md:max-w-xl md:mx-auto space-y-6 pb-24">
                         <header class="flex items-center justify-between py-6">
-                            <div class="flex items-center gap-4">
-                                <button onclick="setView(state.previousView)" class="p-3 bg-white text-rose-300 rounded-full border-2 border-rose-50 shadow-sm"><i data-lucide="arrow-left" size="20"></i></button>
-                                <div class="space-y-1">
-                                    <h1 class="text-3xl font-black text-rose-900">Results! ✨</h1>
-                                    <p class="text-rose-300 font-bold text-xs leading-none">Checking up on ${state.activeQuiz ? state.activeQuiz.creatorName : 'pookie'}'s pookies</p>
-                                </div>
+                            <div class="space-y-1">
+                                <h1 class="text-3xl font-black text-rose-900">Results! ✨</h1>
+                                <p class="text-rose-300 font-bold">Checking up on ${state.activeQuiz.creatorName}'s pookies</p>
                             </div>
                              <div class="flex gap-2">
                                 <button onclick="handleLogout()" class="p-4 bg-white rounded-pill-pookie shadow-sm text-rose-300 border-2 border-rose-50"><i data-lucide="log-out" size="24"></i></button>
@@ -626,34 +608,20 @@ auth = getAuth(app);
                             ` : `
                                 <div class="space-y-4">
                                     ${sortedAttempts.map((attempt, idx) => `
-                                        <div class="relative group">
-                                            <div onclick="openAttemptDetails(${idx})" class="cursor-pointer bg-white p-6 rounded-pookie flex items-center justify-between shadow-sm border-2 border-rose-50 hover:border-rose-200 transition-all">
-                                                <div class="flex items-center gap-5">
-                                                    <div class="w-14 h-14 rounded-3xl flex items-center justify-center text-xl font-black ${idx === 0 ? 'bg-yellow-100 text-yellow-500' : 'bg-rose-50 text-rose-300'}">
-                                                        ${idx === 0 ? '👑' : attempt.friendName.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <h4 class="font-black text-rose-900 text-lg">${attempt.friendName}</h4>
-                                                        <p class="text-[10px] text-rose-200 font-black uppercase tracking-widest">${new Date(attempt.timestamp).toLocaleDateString()}</p>
-                                                    </div>
+                                        <div class="bg-white p-6 rounded-pookie flex items-center justify-between shadow-sm border-2 border-rose-50">
+                                            <div class="flex items-center gap-5">
+                                                <div class="w-14 h-14 rounded-3xl flex items-center justify-center text-xl font-black ${idx === 0 ? 'bg-yellow-100 text-yellow-500' : 'bg-rose-50 text-rose-300'}">
+                                                    ${idx === 0 ? '👑' : attempt.friendName.charAt(0)}
                                                 </div>
-                                                <div class="flex items-center gap-3">
-                                                    <div class="bg-rose-50 px-4 py-2 rounded-2xl">
-                                                        <span class="text-xl font-black text-rose-500">${attempt.score}</span>
-                                                        <span class="text-[10px] font-black text-rose-200">/${attempt.total}</span>
-                                                    </div>
-                                                    <button onclick="event.stopPropagation(); toggleDeleteMenu('${attempt.timestamp}')" class="p-2 text-rose-200 hover:text-rose-400">
-                                                        <i data-lucide="more-vertical" size="18"></i>
-                                                    </button>
+                                                <div>
+                                                    <h4 class="font-black text-rose-900 text-lg">${attempt.friendName}</h4>
+                                                    <p class="text-[10px] text-rose-200 font-black uppercase tracking-widest">${new Date(attempt.timestamp).toLocaleDateString()}</p>
                                                 </div>
                                             </div>
-                                            ${state.showDeleteId == attempt.timestamp ? `
-                                                <div class="absolute right-0 top-16 bg-white shadow-2xl rounded-2xl border-2 border-rose-50 z-[60] p-2 min-w-[120px]">
-                                                    <button onclick="deleteAttempt('${attempt.timestamp}')" class="w-full text-left px-4 py-2 text-red-500 font-black text-xs uppercase flex items-center gap-2 hover:bg-rose-50 rounded-xl">
-                                                        <i data-lucide="trash-2" size="14"></i> Delete
-                                                    </button>
-                                                </div>
-                                            ` : ''}
+                                            <div class="bg-rose-50 px-4 py-2 rounded-2xl">
+                                                <span class="text-xl font-black text-rose-500">${attempt.score}</span>
+                                                <span class="text-[10px] font-black text-rose-200">/${attempt.total}</span>
+                                            </div>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -726,49 +694,10 @@ auth = getAuth(app);
                             </button>
                             <button onclick="closeProfileEditor()" class="flex-1 py-4 bg-rose-50 text-rose-400 rounded-pookie font-bold border-2 border-rose-100">Cancel</button>
                         </div>
-<button onclick="handleLogout()" 
-    class="w-full py-3 mt-2 bg-rose-50 rounded-2xl font-black text-rose-300 text-[10px] uppercase tracking-widest hover:text-rose-500 transition flex items-center justify-center gap-2">
-    <i data-lucide="log-out" size="14"></i>
-    Logout & Leave Pookies 😢
-</button>
-                    </div>
-                </div>`;
-                root.appendChild(modal);
-            }
-
-            if (state.selectedAttemptDetails !== null) {
-                const attempt = state.attempts[state.selectedAttemptDetails];
-                const modal = document.createElement('div');
-                modal.className = "fixed inset-0 z-[1001] bg-rose-900/40 backdrop-blur-sm flex items-center justify-center p-4";
-                modal.onclick = (e) => { if(e.target === modal) { state.selectedAttemptDetails = null; render(); } };
-                
-                const filteredQuestions = state.activeQuiz.questions.map((q, idx) => {
-                    const friendAns = (attempt.answers[idx] || '').trim().toLowerCase();
-                    const correctAns = (q.correctAnswer || '').trim().toLowerCase();
-                    return { ...q, friendAns: attempt.answers[idx], isCorrect: friendAns === correctAns, originalIdx: idx };
-                }).filter(q => state.detailTab === 'correct' ? q.isCorrect : !q.isCorrect);
-
-                modal.innerHTML = `
-                <div class="bg-white rounded-[2.5rem] w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-toast-enter">
-                    <div class="p-6 bg-rose-50 border-b-2 border-rose-100">
-                        <h3 class="text-xl font-black text-rose-900">${attempt.friendName}'s Answers</h3>
-                        <div class="flex gap-2 mt-4">
-                            <button onclick="state.detailTab='correct'; render();" class="flex-1 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${state.detailTab === 'correct' ? 'bg-rose-400 text-white' : 'bg-white text-rose-300'}">✅ Correct</button>
-                            <button onclick="state.detailTab='incorrect'; render();" class="flex-1 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${state.detailTab === 'incorrect' ? 'bg-rose-400 text-white' : 'bg-white text-rose-300'}">❌ Incorrect</button>
-                        </div>
-                    </div>
-                    <div class="flex-1 overflow-y-auto p-6 space-y-4">
-                        ${filteredQuestions.length === 0 ? `<p class="text-center text-rose-200 italic py-10">Nothing to see here! ✨</p>` : ''}
-                        ${filteredQuestions.map(q => `
-                            <div class="p-4 rounded-2xl bg-rose-50/30 border border-rose-100">
-                                <p class="text-xs font-black text-rose-300 uppercase mb-1">Question ${q.originalIdx + 1}</p>
-                                <p class="font-bold text-rose-900 mb-2">${q.question || q.text}</p>
-                                <div class="space-y-1">
-                                    <p class="text-sm font-bold text-rose-500">Pookie said: <span class="text-rose-400">${q.friendAns || '(empty)'}</span></p>
-                                    ${state.detailTab === 'incorrect' ? `<p class="text-sm font-black text-green-500 italic">Correct: ${q.correctAnswer}</p>` : ''}
-                                </div>
-                            </div>
-                        `).join('')}
+                        <button onclick="state.showProfileEditor=false; setView('dashboard'); render();" 
+                            class="w-full py-3 bg-rose-100/50 rounded-2xl font-black text-rose-400 text-[10px] uppercase tracking-widest hover:bg-rose-100 transition">
+                            Go to Results Dashboard 🖥️
+                        </button>
                     </div>
                 </div>`;
                 root.appendChild(modal);
@@ -790,183 +719,117 @@ auth = getAuth(app);
             state.friendName = '';
             state.friendAnswers = [];
             
-            // 2. IMPORTANT: Clear the questions list so it's empty for the new creator
-            state.questions = []; 
-            
             // Clean the URL so it doesn't try to load the old quiz
             const url = new URL(window.location);
             url.searchParams.delete('q');
             window.history.pushState({}, '', url);
 
-            // Authentication Flow: Open Auth Page
-            setView('auth');
-        };
-
-        // FIXED: Replaced simple state change with Real Firebase Auth
-        window.handleLogin = async () => {
-            const email = document.getElementById('login-email').value;
-            const pass = document.getElementById('login-pass').value;
-            if(!email || !pass) { alert("Please fill in your pookie details! 🥺"); return; }
-            
-            try {
-                // ADDED: Real Firebase Login
-                const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-                const user = userCredential.user;
-                console.log("Logged in user:", user.uid);
-
-                state.isLoggedIn = true;
-                state.isGuest = false;
-                state.userEmail = email;
-                
-                // If they have a profile completed in local state, go to create, else profile
-                if(state.profileCompleted) { setView('create'); } else { setView('profile'); }
-                
-            } catch (error) {
-                console.error("Login failed", error);
-                alert("Oops! " + error.message + " 🥺");
+            // Redirect based on whether they have a profile
+            if (state.profileCompleted) {
+                setView('create');
+            } else {
+                setView('profile');
             }
         };
 
-        window.handleGuestMode = () => {
-            setView('guest_init');
+
+                       window.handleStartOwnQuiz = () => {
+            // 1. Reset everything for a fresh quiz
+            state.activeQuiz = null;
+            state.quizId = null;
+            state.attemptResult = null;
+            state.friendName = '';
+            state.friendAnswers = [];
+            
+            // 2. IMPORTANT: Clear the questions list so it's empty for the new creator
+            state.questions = []; 
+            
+            // 3. Clean the URL
+            const url = new URL(window.location);
+            url.searchParams.delete('q');
+            window.history.pushState({}, '', url);
+
+            // 4. Send to profile if new, or directly to empty creator
+            if (state.profileCompleted) {
+                setView('create');
+            } else {
+                setView('profile');
+            }
         };
 
-        window.confirmGuest = () => {
-            const name = document.getElementById('guest-name').value;
-            if(!name) { alert("What's your pookie name? ✨"); return; }
+
+        window.handleLogin = () => {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+            if(!email || !pass) { alert("Please fill in your pookie details! 🥺"); return; }
+            state.isLoggedIn = true;
+            state.isGuest = false;
+            state.userEmail = email;
+            if(state.profileCompleted) { setView('create'); } else { setView('profile'); }
+        };
+
+        window.handleGuestMode = () => {
             state.isLoggedIn = false;
             state.isGuest = true;
-            state.profile.name = name;
-            state.profileCompleted = true;
-            setView('create');
+            state.userEmail = 'guest';
+            setView('profile');
         };
 
         window.handleNewProfile = () => {
-            state.profile = { ...defaultState.profile }; // Reset profile
-            setView('profile');
+             state.profile = { ...defaultState.profile };
+             state.profileCompleted = false;
+             setView('profile');
+        };
+
+        window.handleLogout = () => {
+            const confirmLogout = confirm("Are you sure you want to leave your pookies? 😢");
+            if(confirmLogout) {
+                localStorage.removeItem(STORAGE_KEY);
+                state = { ...defaultState };
+                location.reload(); 
+            }
+        };
+
+        window.showSoon = () => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast-enter bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 pointer-events-auto mb-2';
+            toast.innerHTML = `<i data-lucide="sparkles" size="16" class="text-yellow-300"></i><span class="text-sm font-bold">Available soon! 🚧</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
         };
 
         window.handleProfileLiveUpdate = (field, value) => {
             state.profile[field] = value;
-            if(state.view === 'create') render(); // Re-render if in creator view to show name update
-        };
+            saveState(); 
+        }
 
         window.updateVibe = (vibe) => {
             state.profile.vibe = vibe;
             render();
-        };
+        }
 
-        window.handleZodiacCalc = (dateStr) => {
-            state.profile.dob = dateStr;
-            const date = new Date(dateStr);
-            const day = date.getDate();
-            const month = date.getMonth() + 1;
-            
-            let sign = "";
-            let element = "";
-
-            // Simple Zodiac Logic
-            if((month==3 && day>=21)||(month==4 && day<=19)){ sign="Aries"; element="Fire"; }
-            else if((month==4 && day>=20)||(month==5 && day<=20)){ sign="Taurus"; element="Earth"; }
-            else if((month==5 && day>=21)||(month==6 && day<=20)){ sign="Gemini"; element="Air"; }
-            else if((month==6 && day>=21)||(month==7 && day<=22)){ sign="Cancer"; element="Water"; }
-            else if((month==7 && day>=23)||(month==8 && day<=22)){ sign="Leo"; element="Fire"; }
-            else if((month==8 && day>=23)||(month==9 && day<=22)){ sign="Virgo"; element="Earth"; }
-            else if((month==9 && day>=23)||(month==10 && day<=22)){ sign="Libra"; element="Air"; }
-            else if((month==10 && day>=23)||(month==11 && day<=21)){ sign="Scorpio"; element="Water"; }
-            else if((month==11 && day>=22)||(month==12 && day<=21)){ sign="Sagittarius"; element="Fire"; }
-            else if((month==12 && day>=22)||(month==1 && day<=19)){ sign="Capricorn"; element="Earth"; }
-            else if((month==1 && day>=20)||(month==2 && day<=18)){ sign="Aquarius"; element="Air"; }
-            else if((month==2 && day>=19)||(month==3 && day<=20)){ sign="Pisces"; element="Water"; }
-
-            state.profile.zodiac = sign;
-            state.profile.element = element;
+        window.handleZodiacCalc = (dateVal) => {
+            state.profile.dob = dateVal;
+            const z = getZodiac(dateVal);
+            state.profile.zodiac = z.n;
+            state.profile.element = z.e;
             render();
-        };
+        }
 
-        window.saveProfile = async () => {
-            if (!state.profile.name) { showToast("What's your name, pookie? 🥺"); return; }
-            
-            // If email/pass provided, create account
-            if(state.profile.email && document.getElementById('prof-pass').value) {
-                const pass = document.getElementById('prof-pass').value;
-                const confirm = document.getElementById('prof-pass-confirm').value;
-                
-                if(pass !== confirm) { showToast("Passwords don't match! 🤨"); return; }
-                
-                try {
-                    const userCredential = await createUserWithEmailAndPassword(auth, state.profile.email, pass);
-                    state.userEmail = userCredential.user.email;
-                    state.isLoggedIn = true;
-                    // Save extra profile data to Firestore 'users' collection (optional for this MVP but good practice)
-                    await setDoc(doc(db, "users", userCredential.user.uid), {
-                        name: state.profile.name,
-                        dob: state.profile.dob,
-                        vibe: state.profile.vibe,
-                        knownFor: state.profile.knownFor
-                    });
-                } catch(e) {
-                    showToast("Error: " + e.message);
-                    return;
-                }
-            }
-
+        window.saveProfile = () => {
+            const nameEl = document.getElementById('prof-name');
+            const knownEl = document.getElementById('prof-known');
+            if(nameEl) state.profile.name = nameEl.value;
+            if(knownEl) state.profile.knownFor = knownEl.value;
+            if (!state.profile.name) { alert("What should pookies call you? ✨"); return; }
             state.profileCompleted = true;
             setView('create');
-        };
-
-        // --- QUESTION MANAGEMENT ---
-
-        window.addQuestion = () => {
-            state.questions.push({
-                question: '',
-                isMultipleChoice: false,
-                options: ['', ''],
-                correctAnswer: ''
-            });
-            render();
-            // Scroll to bottom
-            setTimeout(() => {
-                const list = document.getElementById('questionsList');
-                if(list) list.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
-        };
-
-        window.removeQuestion = (idx) => {
-            state.questions.splice(idx, 1);
-            render();
-        };
-
-        window.updateQuestion = (idx, field, value) => {
-            state.questions[idx][field] = value;
-        };
-
-        window.toggleMultipleChoice = (idx) => {
-            state.questions[idx].isMultipleChoice = !state.questions[idx].isMultipleChoice;
-            // Reset answer when toggling
-            state.questions[idx].correctAnswer = ''; 
-            render();
-        };
-
-        window.addOption = (qIdx) => {
-            if(state.questions[qIdx].options.length < 6) {
-                state.questions[qIdx].options.push('');
-                render();
-            }
-        };
-
-        window.removeOption = (qIdx, oIdx) => {
-            state.questions[qIdx].options.splice(oIdx, 1);
-            render();
-        };
-
-        window.updateOption = (qIdx, oIdx, val) => {
-            state.questions[qIdx].options[oIdx] = val;
-            // If this option was the correct answer, update the correct answer text too
-            // (Only complex if we stored index, but we store string value)
-             if(state.questions[qIdx].correctAnswer === state.questions[qIdx].options[oIdx]) {
-                 state.questions[qIdx].correctAnswer = val;
-             }
         };
 
         window.setMode = (mode) => {
@@ -974,284 +837,194 @@ auth = getAuth(app);
             render();
         };
 
-        // --- QUIZ CREATION & SHARING ---
-
-        window.handleCreateQuiz = async () => {
-            if(state.questions.length === 0) { showToast("Add at least one question! 🧸"); return; }
-            
-            // Validate that all questions have answers
-            const invalid = state.questions.some(q => !q.question || !q.correctAnswer);
-            if(invalid) { showToast("Please fill in all questions & answers! 🚨"); return; }
-
-            const payload = {
-                creatorName: state.profile.name,
-                creatorId: state.userEmail || 'guest',
-                mode: state.selectedMode,
-                questions: state.questions,
-                createdAt: new Date().toISOString()
-            };
-
-            try {
-                const docRef = await addDoc(collection(db, "quizzes"), payload);
-                state.quizId = docRef.id;
-                
-                // Update URL without reloading
-                const url = new URL(window.location);
-                url.searchParams.set('q', state.quizId);
-                window.history.pushState({}, '', url);
-                
-                setView('share');
-            } catch (e) {
-                console.error("Error creating quiz:", e);
-                showToast("Could not save quiz. Check connection! 😢");
-            }
+        window.addQuestion = () => {
+            state.questions.push({ question: '', correctAnswer: '', isMultipleChoice: false, options: ['', ''] });
+            render();
         };
+
+        window.removeQuestion = (idx) => {
+            state.questions.splice(idx, 1);
+            render();
+        };
+
+        window.updateQuestion = (idx, field, val) => {
+            state.questions[idx][field] = val;
+            saveState();
+        };
+
+       // Shows the preview page
+window.handleShowPreview = () => {
+    if (state.questions.length === 0) { alert("Add a question first! 🎀"); return; }
+    state.view = 'preview';
+    render();
+};
+
+// Takes user back to editor to fix a specific question
+window.editQuestion = (idx) => {
+    state.view = 'create';
+    render();
+};
+
+// The actual save function
+window.confirmFinalCreation = async () => {
+    const id = Math.random().toString(36).substring(2, 8);
+    const newQuiz = { 
+        id, 
+        creatorName: state.profile.name, 
+        creatorId: auth?.currentUser?.uid || 'anon', 
+        mode: state.selectedMode, 
+        questions: state.questions, 
+        message: state.message || '',
+        createdAt: Date.now() 
+    };
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', id), newQuiz);
+    state.quizId = id;
+    state.activeQuiz = newQuiz;
+    state.view = 'share';
+    render();
+};
+
+// Updated: Fresh start for friends who want to make their own quiz
+window.handleStartOwnQuiz = () => {
+    state.activeQuiz = null;
+    state.quizId = null;
+    state.attemptResult = null;
+    state.questions = []; // Clears old questions
+    state.message = '';
+    
+    const url = new URL(window.location);
+    url.searchParams.delete('q');
+    window.history.pushState({}, '', url);
+
+    if (state.profileCompleted) { setView('create'); } 
+    else { setView('profile'); }
+};
+
 
         window.copyLink = () => {
-            const url = document.getElementById('linkText').innerText;
-            navigator.clipboard.writeText(url).then(() => {
-                showToast("Link copied! Send it to pookie 🚀");
-            });
+            const url = `${window.location.origin}${window.location.pathname}?q=${state.quizId}`;
+            if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => alert("Copied! 🎀")); } 
+            else { alert("Copied! 🎀"); }
+        };
+                   window.handleOptionSelect = (qIdx, value) => {
+            state.friendAnswers[qIdx] = value;
+            render(); // This ensures the UI highlights the selected pink box immediately
         };
 
-        // --- ATTEMPT LOGIC (FRIEND VIEW) ---
+        window.openDashboardConfirm = () => { state.showDashboardConfirm = true; render(); };
+        window.confirmDashboard = () => { state.showDashboardConfirm = false; state.view = 'dashboard'; if(state.quizId) loadAttempts(state.quizId); render(); };
+        window.cancelDashboard = () => { state.showDashboardConfirm = false; render(); };
+        window.openProfileEditor = () => { state.editDraft = { ...state.profile }; state.showProfileEditor = true; render(); };
+        window.closeProfileEditor = () => { state.showProfileEditor = false; render(); };
+        window.handleProfileInput = (field, value) => { state.editDraft[field] = value; render(); };
+        window.saveProfileEdits = () => { if (JSON.stringify(state.profile) === JSON.stringify(state.editDraft)) return; state.profile = { ...state.editDraft }; state.showProfileEditor = false; render(); };
 
         window.startAttempt = () => {
-            const name = document.getElementById('friendNameInput').value;
-            if(!name) { showToast("Don't be shy, tell me your name! 💗"); return; }
-            state.friendName = name;
-            state.friendAnswers = new Array(state.activeQuiz.questions.length).fill('');
+            const nameInput = document.getElementById('friendNameInput');
+            if(!nameInput.value) { alert("Tell me your name! 💕"); return; }
+            state.friendName = nameInput.value;
             render();
         };
 
         window.updateFriendAnswer = (idx, val) => {
             state.friendAnswers[idx] = val;
-        };
-
-        window.handleOptionSelect = (idx, val) => {
-            state.friendAnswers[idx] = val;
-            render(); // Re-render to show selection highlight
+            saveState(); 
         };
 
         window.handleSubmitAttempt = async () => {
-            // Calculate Score
             let score = 0;
             state.activeQuiz.questions.forEach((q, idx) => {
                 const friendAns = (state.friendAnswers[idx] || '').trim().toLowerCase();
-                const correct = (q.correctAnswer || '').trim().toLowerCase();
-                if(friendAns === correct) score++;
+                const correctAns = (q.correctAnswer || '').trim().toLowerCase();
+                if (friendAns && correctAns && friendAns === correctAns) score++;
             });
+            const attempt = { quizId: state.activeQuiz.id, friendName: state.friendName, answers: state.friendAnswers, score, total: state.activeQuiz.questions.length, timestamp: Date.now() };
+            if (!DEV_MODE && db) { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'attempts'), attempt); } 
+            else { const existing = JSON.parse(localStorage.getItem('dev_attempts_' + state.activeQuiz.id) || '[]'); existing.push(attempt); localStorage.setItem('dev_attempts_' + state.activeQuiz.id, JSON.stringify(existing)); }
+            state.attemptResult = attempt;
+            render();
+        };
 
-            const result = {
-                score,
-                total: state.activeQuiz.questions.length,
-                percentage: Math.round((score / state.activeQuiz.questions.length) * 100)
-            };
+        const getZodiac = (dateString) => {
+            if(!dateString) return {n: "", e: "", s: ""};
+            const date = new Date(dateString);
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            if ((month == 3 && day >= 21) || (month == 4 && day <= 19)) return {n: "Aries", e: "Fire", s: "♈"};
+            if ((month == 4 && day >= 20) || (month == 5 && day <= 20)) return {n: "Taurus", e: "Earth", s: "♉"};
+            if ((month == 5 && day >= 21) || (month == 6 && day <= 20)) return {n: "Gemini", e: "Air", s: "♊"};
+            if ((month == 6 && day >= 21) || (month == 7 && day <= 22)) return {n: "Cancer", e: "Water", s: "♋"};
+            if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) return {n: "Leo", e: "Fire", s: "♌"};
+            if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return {n: "Virgo", e: "Earth", s: "♍"};
+            if ((month == 9 && day >= 23) || (month == 10 && day <= 22)) return {n: "Libra", e: "Air", s: "♎"};
+            if ((month == 10 && day >= 23) || (month == 11 && day <= 21)) return {n: "Scorpio", e: "Water", s: "♏"};
+            if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) return {n: "Sagittarius", e: "Fire", s: "♐"};
+            if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) return {n: "Capricorn", e: "Earth", s: "♑"};
+            if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) return {n: "Aquarius", e: "Air", s: "♒"};
+            return {n: "Pisces", e: "Water", s: "♓"};
+        };
 
-            state.attemptResult = result;
+        window.toggleMultipleChoice = (idx) => { state.questions[idx].isMultipleChoice = !state.questions[idx].isMultipleChoice; render(); };
+        window.addOption = (qIdx) => { if (state.questions[qIdx].options.length < 6) { state.questions[qIdx].options.push(''); render(); } };
+        window.removeOption = (qIdx, optIdx) => { state.questions[qIdx].options.splice(optIdx, 1); render(); };
+        window.updateOption = (qIdx, optIdx, val) => { state.questions[qIdx].options[optIdx] = val; saveState(); };
 
-            // Save Attempt to Firestore
-            try {
-                await addDoc(collection(db, "quizzes", state.quizId, "attempts"), {
-                    friendName: state.friendName,
-                    answers: state.friendAnswers,
-                    score: result.score,
-                    total: result.total,
-                    timestamp: new Date().toISOString()
-                });
-            } catch(e) {
-                console.error("Error saving attempt", e);
+                async function loadQuiz(id) {
+            let quizData = null;
+            // Fetch the quiz data from Firebase or LocalStorage
+            if (!DEV_MODE && db) { 
+                try { 
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', id)); 
+                    if (snap.exists()) quizData = snap.data(); 
+                } catch(e) { console.error("Load Error", e); } 
+            } else { 
+                const localData = localStorage.getItem('dev_quiz_' + id); 
+                if(localData) quizData = JSON.parse(localData); 
             }
 
-            render();
-        };
-
-        // --- DASHBOARD LOGIC ---
-
-        window.handleOpenDashboard = (fromView) => {
-            if(!state.quizId) { showToast("Create a quiz first! 🤦‍♀️"); return; }
-            state.previousView = fromView;
-            
-            // Listen to live updates
-            const q = collection(db, "quizzes", state.quizId, "attempts");
-            // Detach previous listener if exists (not implemented for simplicity in this snippet, but good practice)
-            
-            onSnapshot(q, (snapshot) => {
-                const attempts = [];
-                snapshot.forEach((doc) => {
-                    attempts.push({ id: doc.id, ...doc.data() });
-                });
-                state.attempts = attempts;
-                render();
-            });
-
-            // If user is guest/creator, simple check. If auth, verify (skipping complex auth rules for demo)
-            state.showDashboardConfirm = true;
-            render();
-        };
-
-        window.confirmDashboard = () => {
-            state.showDashboardConfirm = false;
-            setView('dashboard');
-        };
-
-        window.cancelDashboard = () => {
-            state.showDashboardConfirm = false;
-            render();
-        };
-
-        window.openAttemptDetails = (idx) => {
-            state.selectedAttemptDetails = idx;
-            render();
-        };
-
-        window.toggleDeleteMenu = (id) => {
-            if(state.showDeleteId === id) state.showDeleteId = null;
-            else state.showDeleteId = id;
-            render();
-        };
-
-        window.deleteAttempt = async (timestamp) => {
-            // In this simple array logic, we need the Doc ID. 
-            // NOTE: Ideally 'attempts' array stores doc ID. 
-            // Filtering by timestamp for now assuming unique timestamps/IDs match in real logic
-            const attempt = state.attempts.find(a => a.timestamp === timestamp);
-            if(attempt && attempt.id) {
-                try {
-                    await deleteDoc(doc(db, "quizzes", state.quizId, "attempts", attempt.id));
-                    showToast("Bye bye entry! 👋");
-                } catch(e) {
-                    showToast("Could not delete. 😔");
-                }
+            if (quizData) { 
+                state.activeQuiz = quizData; 
+                state.quizId = id; 
+                // Always set view to 'attempt' so friends see the quiz questions
+                state.view = 'attempt'; 
+            } else { 
+                alert("Quiz not found! 🥺"); 
+                state.view = 'landing'; 
             }
-            state.showDeleteId = null;
-        };
-
-        // --- PROFILE EDITING ---
-
-        window.openProfileEditor = () => {
-            state.editDraft = JSON.parse(JSON.stringify(state.profile)); // Deep copy
-            state.showProfileEditor = true;
-            render();
-        };
-
-        window.closeProfileEditor = () => {
-            state.showProfileEditor = false;
-            render();
-        };
-
-        window.handleProfileInput = (field, val) => {
-            state.editDraft[field] = val;
-            render(); // Re-render modal to show changes/save button state
-        };
-
-        window.saveProfileEdits = async () => {
-            state.profile = { ...state.editDraft };
-            saveState();
-            
-            if(state.isLoggedIn && auth.currentUser) {
-                try {
-                     await setDoc(doc(db, "users", auth.currentUser.uid), {
-                        name: state.profile.name,
-                        dob: state.profile.dob,
-                        knownFor: state.profile.knownFor
-                    }, { merge: true });
-                } catch(e) { console.error("Cloud save failed", e); }
-            }
-            
-            closeProfileEditor();
-            showToast("Profile updated! ✨");
-        };
-
-        window.handleLogout = async () => {
-            try {
-                await signOut(auth);
-                localStorage.removeItem(STORAGE_KEY);
-                state = { ...defaultState };
-                window.location.href = window.location.origin + window.location.pathname; // Hard reload
-            } catch(e) {
-                console.error(e);
-            }
-        };
-
-        // --- UTILS ---
-
-        window.showSoon = () => showToast("Coming soon bestie! 🚧");
-
-        window.showToast = (msg) => {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `bg-rose-900 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm flex items-center gap-2 border-2 border-rose-800 toast-enter`;
-            toast.innerHTML = `<i data-lucide="sparkles" size="16" class="text-rose-300"></i> ${msg}`;
-            
-            container.appendChild(toast);
-            lucide.createIcons();
-
-            setTimeout(() => {
-                toast.classList.remove('toast-enter');
-                toast.classList.add('toast-exit');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        };
-
-        // --- INITIALIZATION ---
-
-        async function init() {
-            // Check URL for Quiz ID
-            const urlParams = new URLSearchParams(window.location.search);
-            const qId = urlParams.get('q');
-
-            if (qId) {
-                // Load Quiz Logic
-                state.quizId = qId;
-                try {
-                    const docRef = doc(db, "quizzes", qId);
-                    const docSnap = await getDoc(docRef);
-                    
-                    if (docSnap.exists()) {
-                        state.activeQuiz = docSnap.data();
-                        
-                        // Check if I am the creator (Local storage check)
-                        // In a real app, we check Auth UID vs creatorId
-                        const isCreator = (state.activeQuiz.creatorId === state.userEmail) || 
-                                          (state.questions.length > 0 && state.profile.name === state.activeQuiz.creatorName); // Fallback for guest creator session
-
-                        if (isCreator) {
-                           // Stay on create/dashboard view if I just made it, 
-                           // OR if I am revisiting link, maybe go to dashboard?
-                           // For simplicity: If I have questions in local state matching ID, I am creator
-                           setView('share'); 
-                        } else {
-                           setView('attempt');
-                        }
-                    } else {
-                        showToast("Quiz not found! 💔");
-                        setView('landing');
-                    }
-                } catch (e) {
-                    console.error("Error loading quiz", e);
-                    setView('landing');
-                }
-            } else {
-                // If logged in via Firebase Auth state persistence
-                auth.onAuthStateChanged((user) => {
-                    if (user) {
-                        state.isLoggedIn = true;
-                        state.userEmail = user.email;
-                        // Ideally fetch user profile from Firestore here
-                        setView('create');
-                    } else {
-                        render(); // Render Landing
-                    }
-                });
-            }
-            
             render();
         }
 
-        // Start the app
-        init();
 
+                // Add "query" and "where" to your imports at the very top of the script if they aren't there
+        // import { ..., query, where } from "..."
+
+        function loadAttempts(id) {
+            if (!DEV_MODE && db) {
+                // Create a reference to the attempts collection
+                const attemptsRef = collection(db, 'artifacts', appId, 'public', 'data', 'attempts');
+                
+                // Set up a real-time listener
+                onSnapshot(attemptsRef, (snapshot) => {
+                    const allAttempts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    // Filter attempts for this specific quiz
+                    state.attempts = allAttempts.filter(a => a.quizId === id);
+                    render(); // Re-render the dashboard automatically when a new friend finishes
+                }, (error) => {
+                    console.error("Dashboard Listener Error:", error);
+                });
+            } else {
+                state.attempts = JSON.parse(localStorage.getItem('dev_attempts_' + id) || '[]');
+                render();
+            }
+        }
+
+        async function init() {
+            if (!DEV_MODE && auth) { try { await signInAnonymously(auth); } catch(e) { console.error("Auth Error", e); } }
+            const params = new URLSearchParams(window.location.search);
+            const qId = params.get('q');
+            if (qId) { await loadQuiz(qId); } else { render(); }
+        } 
+        init();
     </script>
 </body>
 </html>

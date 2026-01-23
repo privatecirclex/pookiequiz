@@ -168,7 +168,9 @@ auth = getAuth(app);
             attempts: [],
             editDraft: {},
             showDashboardConfirm: false,
+            showTemplateModal: false,
             showProfileEditor: false
+
         };
 
         // Load State from LocalStorage
@@ -198,6 +200,59 @@ auth = getAuth(app);
         }
 
         loadLocalState();
+                      const QUIZ_TEMPLATES = {
+            friends: [
+                { q: "My go-to mood when I’m tired?", options: [] },
+                { q: "What’s my biggest pet peeve?", options: ["Loud chewing", "Fake people", "Being ignored", "Being rushed"] },
+                { q: "What time of day am I most active?", options: ["Morning", "Afternoon", "Night"] },
+                { q: "What food can always fix my mood?", options: [] },
+                { q: "If I’m quiet for too long, what does it usually mean?", options: ["I’m sad", "I’m overthinking", "I’m busy", "I’m angry"] },
+                { q: "My comfort activity is...", options: [] },
+                { q: "What kind of friend am I in a crisis?", options: ["Listener", "Problem-solver", "Distractor", "Silent supporter"] },
+                { q: "One thing I can never say “no” to?", options: [] },
+                { q: "What annoys me more?", options: ["Being late", "Being lied to"] },
+                { q: "My favorite way to spend a free day?", options: [] },
+                { q: "Am I more:", options: ["Emotional", "Logical"] },
+                { q: "What’s my most-used phrase?", options: [] },
+                { q: "If I disappear, where am I most likely?", options: ["Sleeping", "Overthinking", "Watching something", "Offline by choice"] },
+                { q: "What do I value more?", options: ["Loyalty", "Honesty"] },
+                { q: "One word that describes me best?", options: [] }
+            ],
+            couple: [
+                { q: "What nickname suits me the most?", options: [] },
+                { q: "Am I more:", options: ["Calm pookie", "Chaotic pookie"] },
+                { q: "What small thing makes me smile instantly?", options: [] },
+                { q: "If I’m sad, what do I secretly want?", options: ["Space", "Reassurance", "Distraction"] },
+                { q: "Am I more:", options: ["Clingy", "Independent"] },
+                { q: "What kind of compliments affect me most?", options: ["Looks", "Effort", "Personality"] },
+                { q: "My favorite emoji describes me best?", options: [] },
+                { q: "When I miss someone, I usually:", options: ["Text", "Stay quiet", "Act normal"] },
+                { q: "One habit I have that’s low-key cute?", options: [] },
+                { q: "What makes me feel safe?", options: [] },
+                { q: "Am I more:", options: ["Words person", "Actions person"] },
+                { q: "My comfort word when overwhelmed?", options: [] },
+                { q: "Do I fall asleep easily?", options: ["Yes", "No, brain won’t shut up"] },
+                { q: "What vibe do I give?", options: ["Soft", "Protective", "Mysterious"] },
+                { q: "My ideal late-night activity?", options: [] }
+            ],
+            crush: [
+                { q: "What’s the first thing people usually notice about me?", options: [] },
+                { q: "Am I more:", options: ["Introvert", "Ambivert", "Extrovert"] },
+                { q: "What kind of conversations do I enjoy most?", options: [] },
+                { q: "How do I act when I like someone?", options: ["Quiet", "Teasing", "Extra caring"] },
+                { q: "My love language is?", options: ["Time", "Words", "Acts", "Loyalty"] },
+                { q: "What scares me most in relationships?", options: [] },
+                { q: "Do I believe in:", options: ["Slow burn", "Love at first sight"] },
+                { q: "What kind of energy attracts me?", options: [] },
+                { q: "When I’m nervous, I usually:", options: ["Talk less", "Joke", "Avoid eye contact"] },
+                { q: "One green flag I value a lot?", options: [] },
+                { q: "Am I more:", options: ["Romantic", "Realistic"] },
+                { q: "What ruins attraction instantly for me?", options: [] },
+                { q: "Do I open up easily?", options: ["Yes", "Only to a few"] },
+                { q: "My ideal bond feels like...", options: [] },
+                { q: "If you had to describe me in one word, what would it be?", options: [] }
+            ]
+        };
 
         const MODES = {
             friends: { label: 'Besties', icon: 'users', emoji: '👯‍♀️' },
@@ -212,7 +267,9 @@ auth = getAuth(app);
             const root = document.getElementById('app');
             let content = '';
             
-            document.querySelectorAll('.fixed.inset-0').forEach(el => el.remove()); 
+            // Only remove fixed elements that are NOT the template modal
+document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEach(el => el.remove());
+
 
             if (state.view === 'landing') {
                 content = `
@@ -361,10 +418,16 @@ auth = getAuth(app);
                                         <p class="text-lg font-black text-rose-900 leading-none">${state.profile.name}</p>
                                     </div>
                                 </div>
+                                    <div class="flex gap-4"
+                                    <button onclick="openDashboardConfirm()" class="p-2 bg-white rounded-full text-rose-300 hover:text-rose-500 shadow-sm border border-rose-100">
+    <i data-lucide="layout-dashboard" size="18"></i>
+</button>
+
                                 <button onclick="handleLogout()" class="p-2 bg-white rounded-full text-rose-300 hover:text-rose-500 shadow-sm border border-rose-100">
                                     <i data-lucide="log-out" size="18"></i>
                                 </button>
                             </div>
+                          </div>
                             <div class="grid grid-cols-3 gap-2 mb-6">
                                 ${Object.keys(MODES).map(key => `
                                     <button onclick="setMode('${key}')" 
@@ -383,11 +446,17 @@ auth = getAuth(app);
                                     ${state.questions.length === 0 ? '<div class="text-center text-rose-300 text-xs italic">Tap below to add a question!</div>' : ''}
                                     ${state.questions.map((q, idx) => `
                                         <div class="bg-white p-5 rounded-pookie shadow-sm border-2 border-rose-50 space-y-3 relative">
-                                            <button onclick="removeQuestion(${idx})" class="absolute top-4 right-4 text-rose-200">
+                                            <button onclick="removeQuestion(${idx})" class="absolute top-3 right-3 text-rose-200 hover:text-rose-400 transition-colors">
                                                 <i data-lucide="x-circle" size="18"></i>
                                             </button>
-                                            <div class="flex justify-between items-center">
-                                                <div class="text-[10px] font-black text-rose-200 uppercase tracking-widest">Question ${idx + 1}</div>
+                                            <div class="flex justify-between items-center pr-8">
+                                                <div class="flex items-center gap-2">
+    <div class="text-[10px] font-black text-rose-200 uppercase tracking-widest">Question ${idx + 1}</div>
+    <button onclick="openTemplatePicker(${idx})" class="px-2 py-1 bg-rose-50 text-rose-400 text-[8px] font-black rounded-full border border-rose-100 hover:bg-rose-200 transition-all">
+        ✨ TEMPLATES
+    </button>
+</div>
+
                                                 <label class="flex items-center cursor-pointer gap-2">
                                                     <span class="text-[10px] font-black text-rose-300 uppercase">Multiple Choice</span>
                                                     <input type="checkbox" ${q.isMultipleChoice ? 'checked' : ''} 
@@ -426,7 +495,7 @@ auth = getAuth(app);
                                 </div>
                                 <button onclick="addQuestion()" class="w-full py-4 border-2 border-dashed border-rose-200 rounded-pookie text-rose-300 font-black flex items-center justify-center space-x-2">
                                     <i data-lucide="plus-circle" size="20"></i>
-                                    <span>Add another secret...</span>
+                                     <span>${state.questions.length === 0 ? 'Add a secret... 🎀' : 'Add another secret... 🎀'}</span>
                                 </button>
                             </div>
                             <div class="absolute bottom-4 left-0 right-0 pt-4 bg-gradient-to-t from-[#FFF9FB] to-transparent">
@@ -580,7 +649,8 @@ auth = getAuth(app);
                         <header class="flex items-center justify-between py-6">
                             <div class="space-y-1">
                                 <h1 class="text-3xl font-black text-rose-900">Results! ✨</h1>
-                                <p class="text-rose-300 font-bold">Checking up on ${state.activeQuiz.creatorName}'s pookies</p>
+                             <p class="text-rose-300 font-bold">Checking up on ${(state.activeQuiz?.creatorName || state.profile.name)}'s pookies</p>
+
                             </div>
                              <div class="flex gap-2">
                                 <button onclick="handleLogout()" class="p-4 bg-white rounded-pill-pookie shadow-sm text-rose-300 border-2 border-rose-50"><i data-lucide="log-out" size="24"></i></button>
@@ -656,6 +726,43 @@ auth = getAuth(app);
                 </div>`;
                 root.appendChild(modal);
             }
+                             if (state.showTemplateModal) {
+    const templates = QUIZ_TEMPLATES[state.selectedMode] || [];
+    const modalOverlay = document.createElement('div');
+    
+    // This ID helps the code identify and remove the modal correctly
+    modalOverlay.id = "template-modal-container"; 
+    modalOverlay.className = "fixed inset-0 z-[1000] bg-rose-100/70 backdrop-blur-md flex items-center justify-center p-4";
+    
+    modalOverlay.innerHTML = `
+        <div class="bg-white p-6 rounded-pookie w-full max-w-sm shadow-2xl border-4 border-rose-100 space-y-4 relative">
+            <div class="flex justify-between items-start w-full">
+                <h2 class="text-lg font-black text-rose-900">Choose a Secret ✨</h2>
+                <button onclick="closeTemplateModal()" class="text-rose-300 hover:text-rose-500 p-2">
+    <i data-lucide="x" size="24"></i>
+</button>
+
+            </div>
+            <div class="space-y-2 max-h-80 overflow-y-auto pr-2">
+                ${templates.map((t, i) => `
+    <button onclick="applyTemplate(${i})" 
+        class="w-full text-left p-3 rounded-xl border-2 border-rose-50 hover:border-rose-200 hover:bg-rose-50 transition-all">
+        <p class="text-sm font-bold text-rose-800">${t.q}</p>
+          <p class="text-[9px] font-black text-rose-300 uppercase mt-1">
+            ${t.options && t.options.length > 0 ? 'Multiple Choice ✨' : 'One Liner ✍️'}
+    </button>
+`).join('')}
+
+            </div>
+        </div>`;
+    root.appendChild(modalOverlay);
+    lucide.createIcons();
+}
+
+
+
+
+
 
             if (state.showProfileEditor) {
                 const modal = document.createElement('div');
@@ -694,10 +801,7 @@ auth = getAuth(app);
                             </button>
                             <button onclick="closeProfileEditor()" class="flex-1 py-4 bg-rose-50 text-rose-400 rounded-pookie font-bold border-2 border-rose-100">Cancel</button>
                         </div>
-                        <button onclick="state.showProfileEditor=false; setView('dashboard'); render();" 
-                            class="w-full py-3 bg-rose-100/50 rounded-2xl font-black text-rose-400 text-[10px] uppercase tracking-widest hover:bg-rose-100 transition">
-                            Go to Results Dashboard 🖥️
-                        </button>
+                        
                     </div>
                 </div>`;
                 root.appendChild(modal);
@@ -710,53 +814,7 @@ auth = getAuth(app);
             render();
         };
 
-        // NEW: Handles the logic for "Create My Own Quiz"
-        window.handleStartOwnQuiz = () => {
-            // Reset attempt data so the new user starts fresh
-            state.activeQuiz = null;
-            state.quizId = null;
-            state.attemptResult = null;
-            state.friendName = '';
-            state.friendAnswers = [];
-            
-            // Clean the URL so it doesn't try to load the old quiz
-            const url = new URL(window.location);
-            url.searchParams.delete('q');
-            window.history.pushState({}, '', url);
-
-            // Redirect based on whether they have a profile
-            if (state.profileCompleted) {
-                setView('create');
-            } else {
-                setView('profile');
-            }
-        };
-
-
-                       window.handleStartOwnQuiz = () => {
-            // 1. Reset everything for a fresh quiz
-            state.activeQuiz = null;
-            state.quizId = null;
-            state.attemptResult = null;
-            state.friendName = '';
-            state.friendAnswers = [];
-            
-            // 2. IMPORTANT: Clear the questions list so it's empty for the new creator
-            state.questions = []; 
-            
-            // 3. Clean the URL
-            const url = new URL(window.location);
-            url.searchParams.delete('q');
-            window.history.pushState({}, '', url);
-
-            // 4. Send to profile if new, or directly to empty creator
-            if (state.profileCompleted) {
-                setView('create');
-            } else {
-                setView('profile');
-            }
-        };
-
+      
 
         window.handleLogin = () => {
             const email = document.getElementById('login-email').value;
@@ -918,6 +976,38 @@ window.handleStartOwnQuiz = () => {
         window.closeProfileEditor = () => { state.showProfileEditor = false; render(); };
         window.handleProfileInput = (field, value) => { state.editDraft[field] = value; render(); };
         window.saveProfileEdits = () => { if (JSON.stringify(state.profile) === JSON.stringify(state.editDraft)) return; state.profile = { ...state.editDraft }; state.showProfileEditor = false; render(); };
+                window.openTemplatePicker = (qIdx) => {
+            state.activeTemplateIndex = qIdx;
+            state.showTemplateModal = true;
+            render();
+        };
+
+        window.applyTemplate = (templateIdx) => {
+    // We fetch the clean data directly from the list using the index
+    const template = QUIZ_TEMPLATES[state.selectedMode][templateIdx];
+    const idx = state.activeTemplateIndex;
+
+    state.questions[idx].question = template.q;
+    
+    // This leaves the dot/answer blank for the user to pick
+    state.questions[idx].correctAnswer = ''; 
+
+    if (template.options && template.options.length > 0) {
+        state.questions[idx].isMultipleChoice = true;
+        state.questions[idx].options = [...template.options];
+    } else {
+        state.questions[idx].isMultipleChoice = false;
+        state.questions[idx].options = ['', '', '', ''];
+    }
+    state.showTemplateModal = false;
+    render();
+};
+// Add this new global function to handle closing the modal
+window.closeTemplateModal = () => {
+    state.showTemplateModal = false;
+    render();
+};
+
 
         window.startAttempt = () => {
             const nameInput = document.getElementById('friendNameInput');

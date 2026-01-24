@@ -104,6 +104,46 @@
             from { transform: translateY(0) scale(1); opacity: 1; }
             to { transform: translateY(20px) scale(0.9); opacity: 0; }
         }
+              .idea-bubble {
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    transform-origin: top left;
+}
+
+@keyframes popIn {
+    from { transform: scale(0) translateY(0); opacity: 0; }
+    to { transform: scale(1) translateY(10px); opacity: 1; }
+}
+
+.idea-bubble::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 20px;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid #fb7185; /* Matches rose-500 */
+}
+  /* Custom Pookie Toast Animation */
+.pookie-toast {
+    animation: toastPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes toastPop {
+    0% { transform: translateY(100%) scale(0.5); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.toast-shake {
+    animation: toastShake 0.5s ease-in-out;
+}
+
+@keyframes toastShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+
     </style>
 </head>
 <body class="min-h-screen text-rose-900">
@@ -169,14 +209,19 @@ auth = getAuth(app);
             editDraft: {},
             showDashboardConfirm: false,
             showTemplateModal: false,
-            showProfileEditor: false
-
+            showProfileEditor: false,
+            activeHintIdx: null,
+            lastTypingTime: Date.now()
+            
         };
 
         // Load State from LocalStorage
         let state = { ...defaultState };
         const STORAGE_KEY = 'knowme_pookie_state_v2'; 
-
+        
+        let hintTimer; // Global timer reference
+        let hideHintTimer; // Global timer for the 10s auto-hide
+    
         function loadLocalState() {
             try {
                 const saved = localStorage.getItem(STORAGE_KEY);
@@ -452,9 +497,14 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
                                             <div class="flex justify-between items-center pr-8">
                                                 <div class="flex items-center gap-2">
     <div class="text-[10px] font-black text-rose-200 uppercase tracking-widest">Question ${idx + 1}</div>
-    <button onclick="openTemplatePicker(${idx})" class="px-2 py-1 bg-rose-50 text-rose-400 text-[8px] font-black rounded-full border border-rose-100 hover:bg-rose-200 transition-all">
+<div class="relative inline-block"> <button onclick="openTemplatePicker(${idx})" class="px-2 py-1 bg-rose-50 text-rose-400 text-[8px] font-black rounded-full border border-rose-100 hover:bg-rose-200 transition-all">
         ✨ TEMPLATES
     </button>
+    
+   <div id="hint-${idx}" class="hidden absolute z-50 left-0 top-full mt-1 w-40 p-3 bg-rose-500 text-white text-[10px] font-bold rounded-2xl shadow-xl idea-bubble pointer-events-none">
+        Stuck? Tap me for cute ideas! 💡✨
+    </div>
+</div>
 </div>
 
                                                 <label class="flex items-center cursor-pointer gap-2">
@@ -819,7 +869,7 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
         window.handleLogin = () => {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
-            if(!email || !pass) { alert("Please fill in your pookie details! 🥺"); return; }
+            if(!email || !pass) { pookieAlert("Fill in your pookie details! 🥺", "error"); return; }
             state.isLoggedIn = true;
             state.isGuest = false;
             state.userEmail = email;
@@ -848,19 +898,42 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
             }
         };
 
-        window.showSoon = () => {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast-enter bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 pointer-events-auto mb-2';
-            toast.innerHTML = `<i data-lucide="sparkles" size="16" class="text-yellow-300"></i><span class="text-sm font-bold">Available soon! 🚧</span>`;
-            container.appendChild(toast);
-            lucide.createIcons();
-            setTimeout(() => {
-                toast.classList.remove('toast-enter');
-                toast.classList.add('toast-exit');
-                setTimeout(() => toast.remove(), 300);
-            }, 2000);
-        };
+        window.pookieAlert = (message, type = 'default') => {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    
+    // Different icons for different alerts
+    const icons = {
+        soon: 'construction',
+        error: 'alert-circle',
+        success: 'heart',
+        copy: 'copy'
+    };
+    
+    const icon = icons[type] || 'sparkles';
+    
+    toast.className = `pookie-toast pointer-events-auto flex items-center gap-3 px-6 py-4 rounded-pill-pookie shadow-2xl border-2 mb-3 max-w-[90vw] transition-all
+        ${type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-500 toast-shake' : 'bg-rose-500 border-rose-400 text-white'}`;
+    
+    toast.innerHTML = `
+        <i data-lucide="${icon}" size="20"></i>
+        <span class="text-sm font-black tracking-tight">${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    lucide.createIcons();
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px) scale(0.9)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+};
+
+// Map the old "showSoon" to the new "pookieAlert"
+window.showSoon = () => window.pookieAlert("Available soon! 🚧", "soon");
+
 
         window.handleProfileLiveUpdate = (field, value) => {
             state.profile[field] = value;
@@ -885,7 +958,7 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
             const knownEl = document.getElementById('prof-known');
             if(nameEl) state.profile.name = nameEl.value;
             if(knownEl) state.profile.knownFor = knownEl.value;
-            if (!state.profile.name) { alert("What should pookies call you? ✨"); return; }
+            if (!state.profile.name) { pookieAlert("What should pookies call you? ✨", "error"); return; }
             state.profileCompleted = true;
             setView('create');
         };
@@ -895,24 +968,70 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
             render();
         };
 
-        window.addQuestion = () => {
-            state.questions.push({ question: '', correctAnswer: '', isMultipleChoice: false, options: ['', ''] });
-            render();
-        };
-
         window.removeQuestion = (idx) => {
             state.questions.splice(idx, 1);
             render();
         };
 
-        window.updateQuestion = (idx, field, val) => {
-            state.questions[idx][field] = val;
-            saveState();
-        };
+       window.resetHintTimer = (idx) => {
+    clearTimeout(hintTimer);
+    clearTimeout(hideHintTimer);
+    
+    // Hide the bubble immediately using CSS (no render call!)
+    const bubble = document.getElementById(`hint-${idx}`);
+    if (bubble) bubble.classList.add('hidden');
+
+    const currentQ = state.questions[idx];
+    if (currentQ && !currentQ.question) {
+        hintTimer = setTimeout(() => {
+            // Show the bubble using CSS
+            if (bubble) bubble.classList.remove('hidden');
+            
+            hideHintTimer = setTimeout(() => {
+                // Hide again after 10 seconds
+                if (bubble) bubble.classList.add('hidden');
+            }, 10000);
+        }, 3000);
+    }
+};
+
+
+window.updateQuestion = (idx, field, val) => {
+    state.questions[idx][field] = val;
+    // Every time a letter is typed, we reset the 3-second clock
+    window.resetHintTimer(idx); 
+    saveState();
+};
+
+window.addQuestion = () => {
+    state.questions.push({ 
+        question: '', 
+        correctAnswer: '', 
+        isMultipleChoice: false, 
+        options: ['', ''] 
+    });
+    const newIdx = state.questions.length - 1;
+    render();
+    // Start the timer for the brand new empty question
+    window.resetHintTimer(newIdx);
+};
+
+window.openTemplatePicker = (qIdx) => {
+    // Hide the bubble immediately when they click the template button
+    state.activeHintIdx = null;
+    clearTimeout(hintTimer);
+    clearTimeout(hideHintTimer);
+    
+    state.activeTemplateIndex = qIdx;
+    state.showTemplateModal = true;
+    render();
+};
+
+
 
        // Shows the preview page
 window.handleShowPreview = () => {
-    if (state.questions.length === 0) { alert("Add a question first! 🎀"); return; }
+    if (state.questions.length === 0) { pookieAlert("Add a question first! 🎀", "error"); return; }
     state.view = 'preview';
     render();
 };
@@ -962,7 +1081,7 @@ window.handleStartOwnQuiz = () => {
         window.copyLink = () => {
             const url = `${window.location.origin}${window.location.pathname}?q=${state.quizId}`;
             if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => alert("Copied! 🎀")); } 
-            else { alert("Copied! 🎀"); }
+            else { pookieAlert("Link Copied to clipboard! 🎀", "copy"); }
         };
                    window.handleOptionSelect = (qIdx, value) => {
             state.friendAnswers[qIdx] = value;
@@ -976,12 +1095,7 @@ window.handleStartOwnQuiz = () => {
         window.closeProfileEditor = () => { state.showProfileEditor = false; render(); };
         window.handleProfileInput = (field, value) => { state.editDraft[field] = value; render(); };
         window.saveProfileEdits = () => { if (JSON.stringify(state.profile) === JSON.stringify(state.editDraft)) return; state.profile = { ...state.editDraft }; state.showProfileEditor = false; render(); };
-                window.openTemplatePicker = (qIdx) => {
-            state.activeTemplateIndex = qIdx;
-            state.showTemplateModal = true;
-            render();
-        };
-
+              
         window.applyTemplate = (templateIdx) => {
     // We fetch the clean data directly from the list using the index
     const template = QUIZ_TEMPLATES[state.selectedMode][templateIdx];
@@ -1011,7 +1125,7 @@ window.closeTemplateModal = () => {
 
         window.startAttempt = () => {
             const nameInput = document.getElementById('friendNameInput');
-            if(!nameInput.value) { alert("Tell me your name! 💕"); return; }
+            if(!nameInput.value) { pookieAlert("Tell me your name, pookie! 💕", "error"); return; }
             state.friendName = nameInput.value;
             render();
         };
@@ -1078,7 +1192,7 @@ window.closeTemplateModal = () => {
                 // Always set view to 'attempt' so friends see the quiz questions
                 state.view = 'attempt'; 
             } else { 
-                alert("Quiz not found! 🥺"); 
+                pookieAlert("Quiz not found! 🥺", "error"); 
                 state.view = 'landing'; 
             }
             render();

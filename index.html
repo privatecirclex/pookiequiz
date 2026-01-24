@@ -47,18 +47,44 @@
             transition: all 0.2s;
         }
         
-        .btn-secondary:active {
+                .btn-secondary:active {
             box-shadow: none;
             transform: translateY(4px);
         }
 
+        /* NEW ENHANCEMENTS */
         .rounded-pookie { border-radius: 2.5rem; }
         .rounded-pill-pookie { border-radius: 3.5rem; }
 
-        .animate-pookie-bounce {
-            animation: bounce 5s infinite;
+        .hover-lift { transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .hover-lift:hover { transform: translateY(-5px) scale(1.02); }
+
+        .focus-scale { transition: all 0.2s ease; }
+        .focus-scale:focus { transform: scale(1.02); box-shadow: 0 10px 25px -5px rgba(251, 113, 133, 0.2); }
+
+        .btn-glow { animation: glowing 2s infinite; }
+        @keyframes glowing {
+            0% { box-shadow: 0 4px 0 rgb(225, 110, 130), 0 0 5px rgba(251, 113, 133, 0.2); }
+            50% { box-shadow: 0 4px 0 rgb(225, 110, 130), 0 0 20px rgba(251, 113, 133, 0.6); }
+            100% { box-shadow: 0 4px 0 rgb(225, 110, 130), 0 0 5px rgba(251, 113, 133, 0.2); }
         }
 
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(-20px) translateX(10px); }
+        }
+
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* EXISTING ANIMATIONS */
+        .animate-pookie-bounce { animation: bounce 5s infinite; }
         @keyframes bounce {
             0%, 100% { transform: translateY(0) rotate(3deg) scale(1); }
             50% { transform: translateY(-30px) rotate(-10deg) scale(1.05); }
@@ -71,31 +97,15 @@
             animation: moveGlitter 6s linear infinite;
             z-index: 50;
         }
-        
         .border-h { height: 4px; width: 100%; left: 0; }
         .border-v { width: 4px; height: 100%; top: 0; }
-        
-        .glitter-boundary {
-            height: 4px;
-            width: 100%;
-            background: linear-gradient(90deg, transparent, #fda4af, #fbcfe8, #fda4af, transparent);
-            background-size: 200% 100%;
-            animation: moveGlitter 6s linear infinite;
-        }
-
         @keyframes moveGlitter {
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
 
-        /* Toast Popup Animation */
-        .toast-enter {
-            animation: toastSlideIn 0.3s ease-out forwards;
-        }
-        .toast-exit {
-            animation: toastSlideOut 0.3s ease-in forwards;
-        }
-
+        .toast-enter { animation: toastSlideIn 0.3s ease-out forwards; }
+        .toast-exit { animation: toastSlideOut 0.3s ease-in forwards; }
         @keyframes toastSlideIn {
             from { transform: translateY(100%) scale(0.9); opacity: 0; }
             to { transform: translateY(0) scale(1); opacity: 1; }
@@ -105,6 +115,7 @@
             to { transform: translateY(20px) scale(0.9); opacity: 0; }
         }
     </style>
+
 </head>
 <body class="min-h-screen text-rose-900">
 
@@ -117,7 +128,8 @@
         const DEV_MODE = location.protocol === 'file:' || location.hostname === 'localhost';
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 
         let app, db, auth;
@@ -271,15 +283,18 @@ auth = getAuth(app);
 document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEach(el => el.remove());
 
 
-            if (state.view === 'landing') {
+              if (state.view === 'landing') {
                 content = `
-                    <div class="no-scroll bg-[#FFF9FB] p-6 text-center">
+                    <div class="no-scroll bg-[#FFF9FB] p-6 text-center overflow-hidden">
+                        <div class="absolute top-20 left-[10%] text-rose-200 animate-float opacity-50"><i data-lucide="heart" fill="currentColor" size="24"></i></div>
+                        <div class="absolute top-40 right-[15%] text-pink-200 animate-float opacity-40" style="animation-delay: 1s;"><i data-lucide="sparkles" size="30"></i></div>
+                        <div class="absolute bottom-40 left-[15%] text-rose-100 animate-float opacity-60" style="animation-delay: 2s;"><i data-lucide="heart" fill="currentColor" size="40"></i></div>
+                        
                         <div class="glitter-border border-h top-0"></div>
                         <div class="glitter-border border-h bottom-0"></div>
                         <div class="glitter-border border-v left-0"></div>
                         <div class="glitter-border border-v right-0"></div>
-                        <div class="absolute top-10 left-10 text-rose-200 animate-pookie-bounce"><i data-lucide="heart" fill="currentColor" size="32"></i></div>
-                        <div class="absolute bottom-20 right-10 text-purple-200 animate-pulse"><i data-lucide="stars" fill="currentColor" size="40"></i></div>
+                        
                         <div class="space-y-6 relative z-10 scale-90 md:scale-100 mt-10">
                            <div class="relative inline-block">
                                 <div class="w-32 h-32 md:w-44 md:h-44 bg-rose-100 rounded-pookie flex items-center justify-center mx-auto mb-6 animate-pookie-bounce shadow-xl border-4 border-white">
@@ -294,15 +309,15 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
                             </p>
                         </div>
                         <div class="w-full max-w-xs space-y-4 mt-8 relative z-10">
-                          <button onclick="handleStartOwnQuiz()" class="w-full py-4 md:py-5 text-lg md:text-xl btn-primary rounded-pookie font-bold">
-    Let's Start Pookie ! 🎀
-</button>
-
-
+                          <button onclick="handleStartOwnQuiz()" class="w-full py-4 md:py-5 text-lg md:text-xl btn-primary rounded-pookie font-bold btn-glow hover-lift">
+                            Let's Start Pookie ! 🎀
+                          </button>
                         </div>
                     </div>
                 `;
             } 
+
+
             else if (state.view === 'auth') {
                 content = `
                 <div class="no-scroll bg-[#FFF9FB] p-6 flex flex-col items-center justify-center">
@@ -418,7 +433,7 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
                                         <p class="text-lg font-black text-rose-900 leading-none">${state.profile.name}</p>
                                     </div>
                                 </div>
-                                    <div class="flex gap-4"
+                                    <div class="flex gap-4">
                                     <button onclick="openDashboardConfirm()" class="p-2 bg-white rounded-full text-rose-300 hover:text-rose-500 shadow-sm border border-rose-100">
     <i data-lucide="layout-dashboard" size="18"></i>
 </button>
@@ -475,7 +490,8 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
                                                     ${q.options.map((opt, optIdx) => `
                                                         <div class="flex gap-2 items-center">
                                                             <input type="radio" name="correct_${idx}" ${q.correctAnswer === opt && opt !== '' ? 'checked' : ''} 
-                                                                onchange="updateQuestion(${idx}, 'correctAnswer', '${opt}')" class="accent-rose-500">
+    onchange="updateQuestion(${idx}, 'correctAnswer', this.nextElementSibling.value)" class="accent-rose-500">
+
                                                             <input type="text" placeholder="Option ${optIdx + 1}" value="${opt}"
                                                                 oninput="updateOption(${idx}, ${optIdx}, this.value)"
                                                                 class="flex-1 p-2 bg-rose-50/30 rounded-lg text-xs font-bold text-rose-600 outline-none border border-rose-100">
@@ -564,28 +580,55 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
                         </button>
                     </div>
                 `;
-            } 
-            else if (state.view === 'attempt') {
-                if (state.attemptResult) {
-                    content = `
-                        <div class="min-h-screen bg-[#FFF9FB] p-6 flex flex-col items-center justify-center text-center space-y-8">
-                            <div class="relative">
-                                <div class="w-40 h-40 rounded-pill-pookie bg-white shadow-2xl border-8 border-rose-50 flex flex-col items-center justify-center">
-                                    <span class="text-5xl font-black text-rose-500">${state.attemptResult.score}</span>
-                                    <span class="text-xs font-black text-rose-200 uppercase tracking-widest">out of ${state.attemptResult.total}</span>
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <h2 class="text-3xl font-black text-rose-900">${state.attemptResult.score === state.attemptResult.total ? "Certified Bestie! 💘" : "So Close! ✨"}</h2>
-                                <p class="text-rose-300 font-medium">You finished the quiz for ${state.activeQuiz.creatorName}!</p>
-                            </div>
-                          <button onclick="handleStartOwnQuiz()" class="w-full max-w-xs py-5 btn-primary rounded-pookie font-bold">
-    Create My Own Quiz 🍭
-</button>
+            } else if (state.view === 'attempt') {
+           if (state.attemptResult) {
+    content = `
+        <div class="min-h-screen bg-[#FFF9FB] p-6 flex flex-col items-center py-12">
+            <div class="w-full max-w-md space-y-8">
+                <div class="text-center space-y-4">
+                    <div class="inline-flex flex-col items-center justify-center w-32 h-32 rounded-full bg-white shadow-xl border-4 border-rose-100">
+                        <span class="text-4xl font-black text-rose-500">${state.attemptResult.score}/${state.attemptResult.total}</span>
+                        <span class="text-[10px] font-black text-rose-300 uppercase">Score</span>
+                    </div>
+                    <h2 class="text-2xl font-black text-rose-900">
+                        ${state.attemptResult.score === state.attemptResult.total ? "Ultimate Pookie! 👑" : "Nice try, Bestie! ✨"}
+                    </h2>
+                </div>
 
+                <div class="space-y-3">
+                    <p class="text-[10px] font-black text-rose-300 uppercase tracking-widest ml-2">Reviewing the tea...</p>
+                    ${state.attemptResult.resultsSummary.map((res, i) => `
+                        <div class="bg-white p-4 rounded-2xl border-2 ${res.isCorrect ? 'border-emerald-100 bg-emerald-50/20' : 'border-rose-100 bg-rose-50/20'}">
+                            <p class="text-xs font-black text-rose-900 mb-2">${i+1}. ${res.question}</p>
+                            <div class="flex flex-col gap-1">
+                                <p class="text-xs font-bold ${res.isCorrect ? 'text-emerald-600' : 'text-rose-500'}">
+                                    Your Answer: ${res.friendAnswer || '(Skipped)'}
+                                </p>
+                                ${!res.isCorrect ? `<p class="text-[10px] font-bold text-emerald-600">Correct: ${res.correctAnswer}</p>` : ''}
+                            </div>
                         </div>
-                    `;
-                } else if (!state.friendName) {
+                    `).join('')}
+                </div>
+
+                <div class="bg-white p-6 rounded-pookie shadow-lg border-2 border-rose-100 space-y-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="message-circle" class="text-rose-400" size="18"></i>
+                        <label class="text-sm font-black text-rose-900">Leave a note for ${state.activeQuiz.creatorName}?</label>
+                    </div>
+                    <textarea id="friend-note" class="w-full p-4 bg-rose-50/50 rounded-xl text-sm font-bold text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-200" rows="3" placeholder="Write something cute or chaotic..."></textarea>
+                    <button onclick="handleSubmitAttempt()" class="w-full py-3 bg-rose-400 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-rose-500 transition-all">
+                        Update Message & Finish 🎀
+                    </button>
+                </div>
+
+                <button onclick="handleStartOwnQuiz()" class="w-full py-5 btn-primary rounded-pookie font-bold shadow-xl">
+                    Create My Own Quiz 🍭
+                </button>
+            </div>
+        </div>
+    `;
+}
+ else if (!state.friendName) {
                     content = `
                         <div class="min-h-screen bg-white p-6 md:max-w-xl md:mx-auto space-y-12">
                             <header class="text-center space-y-4">
@@ -676,25 +719,40 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
                                     <button onclick="setView('share')" class="mx-auto py-3 px-6 bg-white text-rose-400 border-2 border-rose-100 rounded-pookie font-bold">Share the Link 🎀</button>
                                 </div>
                             ` : `
-                                <div class="space-y-4">
-                                    ${sortedAttempts.map((attempt, idx) => `
-                                        <div class="bg-white p-6 rounded-pookie flex items-center justify-between shadow-sm border-2 border-rose-50">
-                                            <div class="flex items-center gap-5">
-                                                <div class="w-14 h-14 rounded-3xl flex items-center justify-center text-xl font-black ${idx === 0 ? 'bg-yellow-100 text-yellow-500' : 'bg-rose-50 text-rose-300'}">
-                                                    ${idx === 0 ? '👑' : attempt.friendName.charAt(0)}
-                                                </div>
-                                                <div>
-                                                    <h4 class="font-black text-rose-900 text-lg">${attempt.friendName}</h4>
-                                                    <p class="text-[10px] text-rose-200 font-black uppercase tracking-widest">${new Date(attempt.timestamp).toLocaleDateString()}</p>
-                                                </div>
-                                            </div>
-                                            <div class="bg-rose-50 px-4 py-2 rounded-2xl">
-                                                <span class="text-xl font-black text-rose-500">${attempt.score}</span>
-                                                <span class="text-[10px] font-black text-rose-200">/${attempt.total}</span>
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
+                                
+// --- AFTER (WITH MESSAGE BOXES) ---
+<div class="space-y-4">
+    ${sortedAttempts.map((attempt, idx) => `
+        <div class="bg-white p-6 rounded-pookie shadow-sm border-2 border-rose-50 space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-5">
+                    <div class="w-14 h-14 rounded-3xl flex items-center justify-center text-xl font-black ${idx === 0 ? 'bg-yellow-100 text-yellow-500' : 'bg-rose-50 text-rose-300'}">
+                        ${idx === 0 ? '👑' : attempt.friendName.charAt(0)}
+                    </div>
+                    <div>
+                        <h4 class="font-black text-rose-900 text-lg">${attempt.friendName}</h4>
+                        <p class="text-[10px] text-rose-200 font-black uppercase tracking-widest">
+                            ${new Date(attempt.timestamp).toLocaleDateString()}
+                        </p>
+                    </div>
+                </div>
+                <div class="bg-rose-50 px-4 py-2 rounded-2xl text-center min-w-[60px]">
+                    <span class="text-xl font-black text-rose-500">${attempt.score}</span>
+                    <span class="text-[10px] font-black text-rose-200 block">/${attempt.total}</span>
+                </div>
+            </div>
+
+            ${(attempt.note && attempt.note.trim() !== "") ? `
+    <div class="bg-rose-50/50 p-4 rounded-2xl border-l-4 border-rose-300 relative">
+        <p class="text-sm text-rose-800 font-medium italic">"${attempt.note}"</p>
+    </div>
+` : ''}
+
+        </div>
+    `).join('')}
+</div>
+
+
                             `}
                         </div>
                         <div class="pt-12 text-center">
@@ -848,19 +906,41 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
             }
         };
 
-        window.showSoon = () => {
+                window.showToast = (msg, type = 'default') => {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            toast.className = 'toast-enter bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 pointer-events-auto mb-2';
-            toast.innerHTML = `<i data-lucide="sparkles" size="16" class="text-yellow-300"></i><span class="text-sm font-bold">Available soon! 🚧</span>`;
+            
+            const themes = {
+                success: 'bg-emerald-500 text-white',
+                pookie: 'bg-gradient-to-r from-rose-400 to-pink-400 text-white',
+                gold: 'bg-amber-400 text-rose-900',
+                info: 'bg-rose-100 text-rose-500 border-2 border-rose-200',
+                default: 'bg-gray-800 text-white'
+            };
+
+            const icons = {
+                success: 'check-circle',
+                pookie: 'heart',
+                gold: 'trophy',
+                info: 'sparkles',
+                default: 'alert-circle'
+            };
+
+            toast.className = `toast-enter ${themes[type] || themes.default} px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 pointer-events-auto mb-3 mx-4`;
+            toast.innerHTML = `<i data-lucide="${icons[type] || icons.default}" size="20"></i><span class="font-black text-sm uppercase tracking-wide">${msg}</span>`;
+            
             container.appendChild(toast);
             lucide.createIcons();
+            
             setTimeout(() => {
-                toast.classList.remove('toast-enter');
                 toast.classList.add('toast-exit');
-                setTimeout(() => toast.remove(), 300);
-            }, 2000);
+                setTimeout(() => toast.remove(), 400);
+            }, 3500);
         };
+
+        // Keep this for the buttons that aren't ready yet
+        window.showSoon = () => showToast("Coming soon, Pookie! 🚧", "info");
+
 
         window.handleProfileLiveUpdate = (field, value) => {
             state.profile[field] = value;
@@ -882,13 +962,22 @@ document.querySelectorAll('.fixed.inset-0:not(#template-modal-container)').forEa
 
         window.saveProfile = () => {
             const nameEl = document.getElementById('prof-name');
-            const knownEl = document.getElementById('prof-known');
-            if(nameEl) state.profile.name = nameEl.value;
-            if(knownEl) state.profile.knownFor = knownEl.value;
-            if (!state.profile.name) { alert("What should pookies call you? ✨"); return; }
+            // Check if name is empty
+            if (!nameEl.value.trim()) { 
+                // Adds the 'shake' class we created in Step 1
+                nameEl.parentElement.classList.add('shake');
+                showToast("What's your name, pookie? 🥺", "pookie");
+                // Removes the shake after half a second so it can shake again later
+                setTimeout(() => nameEl.parentElement.classList.remove('shake'), 500);
+                return; 
+            }
+            state.profile.name = nameEl.value;
+            state.profile.knownFor = document.getElementById('prof-known')?.value || '';
             state.profileCompleted = true;
+            showToast("Profile Saved! ✨", "pookie");
             setView('create');
         };
+
 
         window.setMode = (mode) => {
             state.selectedMode = mode;
@@ -961,9 +1050,11 @@ window.handleStartOwnQuiz = () => {
 
         window.copyLink = () => {
             const url = `${window.location.origin}${window.location.pathname}?q=${state.quizId}`;
-            if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => alert("Copied! 🎀")); } 
-            else { alert("Copied! 🎀"); }
+            navigator.clipboard.writeText(url);
+            // This triggers the new Green toast message
+            showToast("Link Copied! Share with your pookies! 🎀", "success");
         };
+
                    window.handleOptionSelect = (qIdx, value) => {
             state.friendAnswers[qIdx] = value;
             render(); // This ensures the UI highlights the selected pink box immediately
@@ -1021,19 +1112,53 @@ window.closeTemplateModal = () => {
             saveState(); 
         };
 
-        window.handleSubmitAttempt = async () => {
-            let score = 0;
-            state.activeQuiz.questions.forEach((q, idx) => {
-                const friendAns = (state.friendAnswers[idx] || '').trim().toLowerCase();
-                const correctAns = (q.correctAnswer || '').trim().toLowerCase();
-                if (friendAns && correctAns && friendAns === correctAns) score++;
-            });
-            const attempt = { quizId: state.activeQuiz.id, friendName: state.friendName, answers: state.friendAnswers, score, total: state.activeQuiz.questions.length, timestamp: Date.now() };
-            if (!DEV_MODE && db) { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'attempts'), attempt); } 
-            else { const existing = JSON.parse(localStorage.getItem('dev_attempts_' + state.activeQuiz.id) || '[]'); existing.push(attempt); localStorage.setItem('dev_attempts_' + state.activeQuiz.id, JSON.stringify(existing)); }
-            state.attemptResult = attempt;
-            render();
+        // --- AFTER (CRASH-PROOF VERSION) ---
+window.handleSubmitAttempt = async () => {
+    // 1. Calculate score only if we haven't already
+    if (!state.attemptResult) {
+        let score = 0;
+        const resultsSummary = state.activeQuiz.questions.map((q, idx) => {
+            const friendAns = (state.friendAnswers[idx] || '').trim();
+            const correctAns = (q.correctAnswer || '').trim();
+            const isCorrect = friendAns.toLowerCase() === correctAns.toLowerCase();
+            if (isCorrect) score++;
+            
+            return {
+                question: q.question || q.text,
+                friendAnswer: friendAns,
+                correctAnswer: correctAns,
+                isCorrect: isCorrect
+            };
+        });
+
+        state.attemptResult = { 
+            quizId: state.activeQuiz.id, 
+            friendName: state.friendName, 
+            resultsSummary,
+            score, 
+            total: state.activeQuiz.questions.length, 
+            timestamp: Date.now() 
         };
+    }
+
+    // 2. Get the note and save to database
+    const friendNote = document.getElementById('friend-note')?.value || "";
+    const finalAttempt = { ...state.attemptResult, note: friendNote };
+
+    if (!DEV_MODE && db) { 
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'attempts'), finalAttempt); 
+    } else { 
+        const existing = JSON.parse(localStorage.getItem('dev_attempts_' + state.activeQuiz.id) || '[]'); 
+        existing.push(finalAttempt); 
+        localStorage.setItem('dev_attempts_' + state.activeQuiz.id, JSON.stringify(existing)); 
+    }
+    
+    // 3. Show success and reset
+    showToast("Message sent to " + state.activeQuiz.creatorName + "! ✨", "success");
+    setTimeout(() => handleStartOwnQuiz(), 1500); 
+};
+
+
 
         const getZodiac = (dateString) => {
             if(!dateString) return {n: "", e: "", s: ""};

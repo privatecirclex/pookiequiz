@@ -10,6 +10,9 @@
     <script src='https://cdn.tailwindcss.com'></script>
     <script src='https://unpkg.com/lucide@latest'></script>
     <script src='https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <style> 
 
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&amp;display=swap');
@@ -247,6 +250,8 @@
             unsubscribe: null,
             previousView: 'create',
             showMemoryDropdown: false,
+            skipAnim: false,
+            showShareCard: false,
             activeDashboardTab: null // Can be 'plays' or 'top' or null
         };
 
@@ -815,7 +820,7 @@ function getFooter() {
 
                     html = `
                     <div class="no-scroll p-6">
-                        <div class="w-full max-w-md mx-auto space-y-6 animate-enter pb-10">
+                        <div class="w-full max-w-md mx-auto space-y-6 ${state.skipAnim ? '' : 'animate-enter'} pb-10">
                             
                             <header class="flex items-center justify-between relative z-30">
                                 <div class="flex items-center gap-3">
@@ -1147,7 +1152,14 @@ function getFooter() {
                             </div>
                         </div>
                         <div class="space-y-2">${reviewList}</div>
-                        <div class="mt-8 mb-4"><button onclick="closeAttemptDetail()" class="w-full py-4 btn-secondary rounded-full font-bold">Close Receipt</button></div>
+                        <div class="mt-8 mb-4 space-y-3">
+    <button onclick="shareFromDashboard()" class="w-full py-4 bg-gradient-to-r from-rose-400 to-purple-500 text-white rounded-full font-black text-lg shadow-xl flex items-center justify-center gap-2 transform transition active:scale-95 group">
+        <i data-lucide="instagram" size="20" class="group-hover:scale-110 transition-transform"></i> 
+        <span>Share Result 📸</span>
+    </button>
+    <button onclick="closeAttemptDetail()" class="w-full py-4 bg-slate-100 text-slate-500 rounded-full font-bold hover:bg-slate-200 transition-colors">Close</button>
+</div>
+
                     </div>`;
                 root.appendChild(modal);
             }
@@ -1276,6 +1288,81 @@ if (state.viewingEnvelopeAttempt) {
         </div>`;
     root.appendChild(modal);
 }
+            // --- NEW: Instagram Share Card Modal ---
+if (state.showShareCard && state.activeQuiz && state.attemptResult) {
+    const score = state.attemptResult.score;
+    const total = state.attemptResult.total;
+    const percent = (score/total)*100;
+    
+    // Dynamic vibe check text
+    const vibeText = percent === 100 ? "SOULMATES" : percent > 50 ? "BESTIES" : "STRANGERS";
+    
+    const modal = document.createElement('div');
+    modal.className = "fixed inset-0 z-[9000] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6";
+    
+    modal.innerHTML = `
+        <div class="w-full max-w-sm flex flex-col items-center animate-enter">
+            
+            <div id="capture-card" class="w-full aspect-[9/16] bg-gradient-to-br from-rose-100 to-purple-100 relative rounded-[2rem] overflow-hidden shadow-2xl flex flex-col border-4 border-white">
+                
+                <div class="absolute top-0 left-0 w-full h-full opacity-50">
+                    <div class="absolute top-[-10%] left-[-10%] w-64 h-64 bg-rose-300 rounded-full blur-3xl opacity-60"></div>
+                    <div class="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-purple-300 rounded-full blur-3xl opacity-60"></div>
+                </div>
+
+                <div class="relative z-10 flex-1 flex flex-col p-6 items-center justify-between text-center">
+                    
+                    <div class="w-full flex justify-between items-center opacity-60">
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">KnowMe App</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-600">${new Date().toLocaleDateString()}</span>
+                    </div>
+
+                    <div class="flex-1 flex flex-col items-center justify-center gap-4">
+                        <div class="glass-panel px-6 py-2 rounded-full border border-white/50">
+                            <span class="text-xs font-black uppercase tracking-widest text-rose-500">The Connection Report</span>
+                        </div>
+                        
+                        <div class="relative">
+                            <h1 class="text-8xl font-black text-slate-800 leading-none tracking-tighter drop-shadow-sm">${score}/${total}</h1>
+                            <div class="absolute -top-6 -right-8 bg-white text-rose-500 text-xs font-black px-2 py-1 rounded-lg transform rotate-12 shadow-sm border border-rose-100">
+                                ${Math.round(percent)}% MATCH
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <h2 class="text-2xl font-black text-slate-700 uppercase tracking-tight">${vibeText}</h2>
+                            <p class="text-sm font-bold text-slate-500">${state.friendName} <span class="text-rose-400">×</span> ${state.activeQuiz.creatorName}</p>
+                        </div>
+                    </div>
+
+                    <div class="w-full glass-panel p-4 rounded-3xl flex items-center justify-between bg-white/60 backdrop-blur-xl border border-white">
+                        <div class="text-left">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Play this quiz</p>
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                                <p class="text-xs font-black text-slate-700">Scan to beat my score</p>
+                            </div>
+                        </div>
+                        <div id="share-qr" class="p-1 bg-white rounded-lg shadow-sm"></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-6 w-full">
+                <button onclick="downloadShareCard()" id="download-btn" class="flex-1 py-4 btn-primary rounded-2xl font-bold shadow-xl flex items-center justify-center gap-2">
+                    Save Image ⬇️
+                </button>
+                <button onclick="closeShareCard()" class="px-5 py-4 bg-white text-slate-400 rounded-2xl font-bold shadow-lg hover:text-rose-500">
+                    <i data-lucide="x" size="24"></i>
+                </button>
+            </div>
+            
+            <p class="mt-4 text-[10px] font-bold text-white/60">Tip: Post this to your story & add the link! 🔗</p>
+        </div>`;
+    root.appendChild(modal);
+}
+
 
         }
 
@@ -1330,15 +1417,26 @@ if (state.viewingEnvelopeAttempt) {
         window.handleNewProfile = () => { state.profile = {...defaultState.profile}; state.profileCompleted=false; setView('profile'); };
         window.updateVibe = (v) => { state.profile.vibe = v; render(); };
         window.toggleDashboardTab = (tab) => {
-    // If clicking the same tab, close it (null). Otherwise, open the new one.
+    // 1. Remember where we are
+    state.skipAnim = true;
+    const y = window.scrollY;
+
+    // 2. Toggle the tab
     if (state.activeDashboardTab === tab) {
         state.activeDashboardTab = null;
     } else {
         state.activeDashboardTab = tab;
     }
+    
+    // 3. Update screen
     Sound.play('pop');
     render();
+    
+    // 4. Put us back exactly where we were
+    window.scrollTo(0, y);
+    state.skipAnim = false;
 };
+
 
         window.handleZodiacCalc = (d) => { const nameInput = document.getElementById('prof-name');
                                            if(nameInput) state.profile.name = nameInput.value; state.profile.dob=d; const z=getZodiac(d); state.profile.zodiac=z.n; state.profile.element=z.e; render(); };
@@ -1591,7 +1689,18 @@ if (state.viewingEnvelopeAttempt) {
 };
 
 
-window.toggleMemoryDropdown = () => { state.showMemoryDropdown = !state.showMemoryDropdown; Sound.play('pop'); render(); };
+window.toggleMemoryDropdown = () => { 
+    state.skipAnim = true;
+    const y = window.scrollY;
+    
+    state.showMemoryDropdown = !state.showMemoryDropdown; 
+    Sound.play('pop'); 
+    render();
+    
+    window.scrollTo(0, y);
+    state.skipAnim = false;
+};
+
 
 
         // --- RESPONDER LOGIC ---
@@ -1678,7 +1787,74 @@ window.openEnvelopeReceipt = (attemptIndex) => {
 
 window.closeEnvelopeReceipt = () => { state.viewingEnvelopeAttempt = null; render(); };
 
+        // --- SHARE CARD LOGIC ---
+window.openShareCard = () => {
+    state.showShareCard = true;
+    Sound.play('pop');
+    render();
+    
+    // Generate QR Code after the modal renders
+    setTimeout(() => {
+        const qrContainer = document.getElementById('share-qr');
+        if (qrContainer) {
+            qrContainer.innerHTML = ''; // Clear previous
+            new QRCode(qrContainer, {
+                text: `${window.location.origin}${window.location.pathname}?q=${state.quizId}`,
+                width: 60,
+                height: 60,
+                colorDark : "#e11d48", // Rose-600
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+    }, 100);
+};
+
+window.closeShareCard = () => { state.showShareCard = false; render(); };
+
+window.downloadShareCard = () => {
+    const card = document.getElementById('capture-card');
+    const btn = document.getElementById('download-btn');
+    
+    // 1. Visual Feedback
+    btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin" size="20"></i> Saving...`;
+    
+    // 2. Capture
+    html2canvas(card, {
+        scale: 3, // High resolution for Retina screens
+        backgroundColor: null, // Transparent corners
+        useCORS: true,
+        logging: false
+    }).then(canvas => {
+        // 3. Download
+        const link = document.createElement('a');
+        link.download = `pookie-receipt-${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
         
+        // 4. Reset
+        btn.innerHTML = `Save Image ⬇️`;
+        pookieAlert("Saved to photos! 🎀", "success");
+        Sound.play('success');
+    });
+};
+    
+window.shareFromDashboard = () => {
+    // 1. Prepare the data for the card
+    // We use your profile name because YOU are the creator viewing the dashboard
+    state.activeQuiz = { creatorName: state.profile.name }; 
+    state.attemptResult = state.viewingAttempt;
+    state.friendName = state.viewingAttempt.friendName;
+    
+    // 2. Close the detail popup
+    state.viewingAttempt = null;
+    
+    // 3. Open the Share Card
+    openShareCard();
+};
+
+
+
                // --- UTILITIES ---
                 window.openAttemptDetail = (index) => {
             state.viewingAttempt = state.attempts[index];

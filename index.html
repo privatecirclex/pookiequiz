@@ -1936,7 +1936,8 @@ if (state.showVibePicker) {
 
         if (state.quizId) {
             // FIX: Update existing quiz instead of creating a duplicate
-            await updateDoc(doc(db, "quizzes", state.quizId), data);
+            await setDoc(doc(db, "quizzes", state.quizId), data, { merge: true });
+
             pookieAlert("Quiz updated! 💅", "success");
         } else {
             // Create new quiz

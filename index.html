@@ -131,7 +131,7 @@
         // --- IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getAuth, signInAnonymously} from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 
         // --- CONFIG ---
         const firebaseConfig = {
@@ -145,7 +145,7 @@
         };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
+        const auth = getAuth(app); 
                 // --- SOUND & HAPTICS (NEW: ASMR EDITION 🎧) ---
         const Sound = {
             ctx: null,
@@ -1626,7 +1626,27 @@ if (state.showVibePicker) {
                 if(state.profileCompleted) setView('create'); else setView('profile');
             }, 800);
         };
-        window.handleGuestMode = () => { state.isLoggedIn=false; state.isGuest=true; setView('profile'); };
+        window.handleGuestMode = async () => { 
+    state.isLoading = true;
+    state.loadingText = "Starting Guest Mode... 👻";
+    render();
+    
+    try {
+        // This is the magic line that fixes the "Permission Denied" error
+        await signInAnonymously(auth);
+        
+        state.isLoggedIn = false; 
+        state.isGuest = true; 
+        state.isLoading = false;
+        setView('profile');
+    } catch (e) {
+        console.error(e);
+        state.isLoading = false;
+        render();
+        pookieAlert("Connection failed! Check internet ☁️", "error");
+    }
+};
+
         window.handleLogout = () => { 
     // FIX: Warn guests that logout = delete data
     const msg = state.userEmail ? "Really log out? 🥺" : "⚠️ WAIT! As a Guest, logging out will DELETE your history & quizzes forever.\n\nAre you sure?";
@@ -1923,67 +1943,64 @@ if (state.showVibePicker) {
     state.loadingText = "Manifesting link... 🔮"; 
     render();
 
+    // NEW: Security Check - Ensure user is actually connected
+    if (!auth.currentUser) {
+        try {
+            console.log("User not signed in, attempting auto-login...");
+            await signInAnonymously(auth);
+        } catch (e) {
+            console.error("Auto-login failed:", e);
+            state.isLoading = false;
+            render();
+            pookieAlert("Connection error. Refresh & try again! 😭", "error");
+            return;
+        }
+    }
+
     try {
-        // 1. SANITIZE DATA (Critical Fix for "Network Error")
-        // Firebase rejects 'undefined', so we force everything to strings/booleans
+        // 1. Sanitize Data (Keep this safe)
         const cleanQuestions = state.questions.map(q => ({
-            question: (q.question || '').trim(),
-            correctAnswer: (q.correctAnswer || '').trim(),
+            question: q.question || '',
+            correctAnswer: q.correctAnswer || '',
             isMultipleChoice: !!q.isMultipleChoice,
-            options: Array.isArray(q.options) ? q.options.map(o => (o || '').trim()) : []
+            options: Array.isArray(q.options) ? q.options.map(o => o || '') : []
         }));
 
         const data = {
-            creatorId: state.userEmail || 'guest', 
-            creatorName: (state.profile.name || 'Anonymous').trim(),
+            creatorId: auth.currentUser.uid, // Use Real Firebase ID
+            creatorName: state.profile.name || 'Anonymous',
             questions: cleanQuestions, 
             mode: state.selectedMode || 'friends', 
-            message: (state.message || '').trim(),
+            message: state.message || '',
             timestamp: new Date().toISOString()
         };
 
-        // 2. SELF-HEALING SAVE LOGIC
+        // 2. Database Operation
         if (state.quizId) {
-            try {
-                // Try to update existing link
-                await setDoc(doc(db, "quizzes", state.quizId), data, { merge: true });
-                pookieAlert("Quiz updated! 💅", "success");
-            } catch (updateError) {
-                console.warn("Update failed (Zombie ID), creating new...", updateError);
-                
-                // IF UPDATE FAILS: Force create a NEW link
-                // This bypasses permission/zombie errors
-                data.attempts = []; 
-                const ref = await addDoc(collection(db, "quizzes"), data);
-                state.quizId = ref.id; // Save new ID
-                pookieAlert("New link created! (Old one was stuck) 🔗", "success");
-            }
+            await setDoc(doc(db, "quizzes", state.quizId), data, { merge: true });
+            pookieAlert("Quiz updated! 💅", "success");
         } else {
-            // No ID yet? Create new.
+            // Create New
             data.attempts = []; 
             const ref = await addDoc(collection(db, "quizzes"), data);
             state.quizId = ref.id;
         }
 
-        // 3. SUCCESS
+        // 3. Success
         state.isLoading = false; 
         Sound.play('success'); 
-        
-        // Safety check for confetti
-        if (typeof confetti === 'function') {
-            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-        }
-        
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         setView('share');
 
     } catch(e) { 
-        console.error("Critical Save Error:", e); 
+        console.error("Save Error:", e); 
         state.isLoading = false; 
         render(); 
-        // Show the REAL error message so we know what's wrong
-        pookieAlert(`Error: ${e.message} 🥺`, "error"); 
+        pookieAlert("Could not save. Try again! ☁️", "error"); 
     }
 };
+
+
 
         window.copyLink = () => {
             navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?q=${state.quizId}`).then(() => pookieAlert("Link copied! 💌", "success"));

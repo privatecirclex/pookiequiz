@@ -1924,50 +1924,56 @@ if (state.showVibePicker) {
     render();
 
     try {
-        // 1. LOGIC FIX: Sanitize Data
-        // Ensure no 'undefined' values exist (which crash Firebase immediately)
+        // 1. SANITIZE DATA (Removes any 'undefined' junk that crashes Firebase)
         const cleanQuestions = state.questions.map(q => ({
-            question: q.question || '',
-            correctAnswer: q.correctAnswer || '',
+            question: (q.question || '').trim(),
+            correctAnswer: (q.correctAnswer || '').trim(),
             isMultipleChoice: !!q.isMultipleChoice,
-            options: Array.isArray(q.options) ? q.options.map(o => o || '') : []
+            options: Array.isArray(q.options) ? q.options.map(o => (o || '').trim()) : []
         }));
 
-        // 2. Prepare Safe Payload
         const data = {
             creatorId: state.userEmail || 'guest', 
-            creatorName: state.profile.name || 'Anonymous',
+            creatorName: (state.profile.name || 'Anonymous').trim(),
             questions: cleanQuestions, 
             mode: state.selectedMode || 'friends', 
-            message: state.message || '',
+            message: (state.message || '').trim(),
             timestamp: new Date().toISOString()
-            // Note: We don't overwrite 'attempts' if updating
         };
 
-        // 3. Database Operation
+        // 2. SMART SAVE (Auto-Fixer)
         if (state.quizId) {
-            // LOGIC FIX: Use setDoc with merge. 
-            // This fixes the "Zombie ID" error by creating the doc if it's missing.
-            await setDoc(doc(db, "quizzes", state.quizId), data, { merge: true });
-            pookieAlert("Quiz updated! 💅", "success");
+            try {
+                // Try to update the existing link
+                await setDoc(doc(db, "quizzes", state.quizId), data, { merge: true });
+                pookieAlert("Quiz updated! 💅", "success");
+            } catch (updateError) {
+                console.warn("Update failed, creating new...", updateError);
+                // IF UPDATE FAILS: Create a BRAND NEW one automatically
+                data.attempts = []; 
+                const ref = await addDoc(collection(db, "quizzes"), data);
+                state.quizId = ref.id;
+                pookieAlert("New link created! (Old one was broken) 🔗", "success");
+            }
         } else {
-            // Create New
+            // No ID yet? Create new.
             data.attempts = []; 
             const ref = await addDoc(collection(db, "quizzes"), data);
             state.quizId = ref.id;
         }
 
-        // 4. Success
+        // 3. SUCCESS
         state.isLoading = false; 
         Sound.play('success'); 
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         setView('share');
 
     } catch(e) { 
-        console.error("Save Error:", e); 
+        console.error("Critical Save Error:", e); 
         state.isLoading = false; 
         render(); 
-        pookieAlert("Could not save. Try again! ☁️", "error"); 
+        // Show the REAL error message so we know what's wrong
+        pookieAlert(`Error: ${e.message} 🥺`, "error"); 
     }
 };
 

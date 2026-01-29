@@ -102,6 +102,9 @@
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* FIX: Prevent iOS Zoom on inputs */
+        input, textarea { font-size: 16px !important; }
+
         /* Toast */
         .pookie-toast {
             animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
@@ -119,7 +122,7 @@
     </div>
 
     <div class='relative z-10' id='app'></div>
-    <div class='fixed bottom-8 left-0 right-0 z-[5000] flex flex-col items-center pointer-events-none gap-2 px-4' id='toast-container'></div>
+    <div class='fixed bottom-8 left-0 right-0 z-[10000] flex flex-col items-center pointer-events-none gap-2 px-4' id='toast-container'></div>
 
     <script type='module'>
    
@@ -252,7 +255,8 @@
             showMemoryDropdown: false,
             skipAnim: false,
             showShareCard: false,
-            activeDashboardTab: null // Can be 'plays' or 'top' or null
+            activeDashboardTab: null,            // Can be 'plays' or 'top' or null
+            showVibePicker: false
         };
 
         let state = { ...defaultState };
@@ -330,6 +334,175 @@
             couple: { label: 'Pookies', icon: 'heart', emoji: '💑', color: 'text-rose-500' },
             crush: { label: 'special someone', icon: 'zap', emoji: '👀', color: 'text-purple-400' }
         };
+    
+    // --- THEME CONFIGURATION 🎨 (High Contrast Edition) ---
+const THEMES = {
+    '🌙 Soft': {
+        bg: 'radial-gradient(circle at 50% 50%, #ffe4e6 0%, #fff1f2 100%)', 
+        blobs: ['#fbcfe8', '#fda4af', '#e0f2fe'],
+        glass: 'rgba(255, 255, 255, 0.7)',
+        text: '#1e293b',      // Main Text: Dark Slate
+        subtext: '#64748b',   // Sub Text: Medium Slate
+        accent: 'linear-gradient(135deg, #fb7185 0%, #f43f5e 100%)'
+    },
+    '☀️ Glow': {
+        bg: 'radial-gradient(circle at 50% 50%, #fef3c7 0%, #fffbeb 100%)', 
+        blobs: ['#fcd34d', '#fdba74', '#fef3c7'],
+        glass: 'rgba(255, 255, 255, 0.9)', // Higher opacity for contrast
+        text: '#451a03',      // Main: Deep Brown
+        subtext: '#92400e',   // Sub: Dark Amber (Readable on Yellow)
+        accent: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+    },
+    '🌸 Cozy': {
+        bg: 'radial-gradient(circle at 50% 50%, #f0fdf4 0%, #f6f5f4 100%)', 
+        blobs: ['#bbf7d0', '#d6d3d1', '#dcfce7'],
+        glass: 'rgba(255, 255, 255, 0.8)',
+        text: '#14532d',      // Main: Dark Green
+        subtext: '#166534',   // Sub: Medium Green
+        accent: 'linear-gradient(135deg, #4ade80 0%, #16a34a 100%)'
+    },
+    '🔥 Spicy': {
+        bg: 'radial-gradient(circle at 50% 50%, #0f0f0f 0%, #2a0a12 100%)', 
+        blobs: ['#9f1239', '#4c0519', '#7f1d1d'], 
+        glass: 'rgba(20, 20, 20, 0.8)', // Dark Glass
+        text: '#ffffff',      // Main: Pure White
+        subtext: '#cbd5e1',   // Sub: Light Grey (Readable on Black)
+        accent: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)'
+    },
+    '🦋 Free': {
+        bg: 'radial-gradient(circle at 50% 50%, #ecfeff 0%, #f0f9ff 100%)', 
+        blobs: ['#a5f3fc', '#bae6fd', '#7dd3fc'],
+        glass: 'rgba(255, 255, 255, 0.7)',
+        text: '#0c4a6e',      // Main: Dark Blue
+        subtext: '#0369a1',   // Sub: Medium Blue
+        accent: 'linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%)'
+    },
+    '🫧 Clean': {
+        bg: 'radial-gradient(circle at 50% 50%, #f8fafc 0%, #ffffff 100%)', 
+        blobs: ['#e2e8f0', '#cbd5e1', '#f1f5f9'],
+        glass: 'rgba(255, 255, 255, 0.95)',
+        text: '#0f172a',      // Main: Almost Black
+        subtext: '#475569',   // Sub: Dark Grey
+        accent: 'linear-gradient(135deg, #94a3b8 0%, #475569 100%)'
+    }
+};
+
+window.applyTheme = () => {
+    const userVibe = state.profile.vibe || '🌙 Soft';
+    const t = THEMES[userVibe] || THEMES['🌙 Soft'];
+    
+    // 1. Update Background & Blobs
+    const bgEl = document.querySelector('.animated-bg');
+    if(bgEl) bgEl.style.background = t.bg;
+    
+    document.querySelector('.blob-1').style.background = t.blobs[0];
+    document.querySelector('.blob-2').style.background = t.blobs[1];
+    document.querySelector('.blob-3').style.background = t.blobs[2];
+
+    // 2. Create/Update Style Tag
+    let styleTag = document.getElementById('theme-overrides');
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'theme-overrides';
+        document.head.appendChild(styleTag);
+    }
+
+    const isDark = userVibe === '🔥 Spicy';
+
+      // 3. FORCE COLORS (High Contrast Fixes)
+    styleTag.innerHTML = `
+            /* --- MEMORY TAB VISIBILITY --- */
+        .bg-slate-50\\/95 {
+            background-color: ${isDark ? '#0f0f0f' : 'rgba(248, 250, 252, 0.95)'} !important;
+            color: ${t.text} !important;
+        }
+
+    
+        /* --- MAIN PANELS --- */
+        .glass-panel { 
+            background: ${t.glass} !important; 
+            border-color: ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)'} !important; 
+        }
+        
+                              /* --- FIX 1: HEADER BUTTONS (Pink stays Pink) --- */
+        .bg-white\\/50 {
+            /* Backgrounds */
+            background-color: ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)'} !important;
+            
+            /* Borders */
+            border: ${isDark ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.6)'} !important;
+            
+            /* COLOR LOGIC: */
+            /* 1. Spicy Mode (Dark)? -> Keep it Neon Pink (#fb7185) */
+            /* 2. Soft Mode (Pink)?  -> Force Deep Rose (#e11d48) so it is Pink but readable */
+            /* 3. Others?            -> Match the theme text (Green/Brown/Blue) */
+            color: ${isDark ? '#fb7185' : (userVibe === '🌙 Soft' ? '#e11d48' : t.text)} !important;
+            
+            backdrop-filter: blur(12px) !important;
+            box-shadow: ${isDark ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(255, 182, 193, 0.1)'} !important;
+        }
+
+        /* Force the icons to match the logic above */
+        .bg-white\\/50 i, .bg-white\\/50 .lucide {
+            color: ${isDark ? '#fb7185' : (userVibe === '🌙 Soft' ? '#e11d48' : t.text)} !important;
+        }
+
+
+        /* --- FIX 2: CLOSE BUTTONS & MODALS --- */
+        /* Targets 'bg-slate-100' used in close buttons */
+        .bg-slate-100 {
+            background-color: ${isDark ? 'rgba(255, 255, 255, 0.15)' : '#f1f5f9'} !important;
+            color: ${isDark ? '#ffffff' : '#94a3b8'} !important;
+        }
+        
+        /* Fix White Modals turning invisible */
+        .bg-white { background-color: ${isDark ? '#1a1a1a' : '#ffffff'} !important; color: ${t.text} !important; }
+        .bg-white\\/90 { background-color: ${isDark ? 'rgba(26, 26, 26, 0.95)' : 'rgba(255, 255, 255, 0.9)'} !important; }
+        
+        /* Fix Template Buttons (Slate-50) */
+        .bg-slate-50 { 
+            background-color: ${isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc'} !important; 
+            border-color: ${isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9'} !important;
+        }
+
+            /* --- FIX: PROFILE BACK BUTTON --- */
+        /* Targets 'bg-white/80' to make it dark in Spicy Mode */
+        .bg-white\\/80 {
+            background-color: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.8)'} !important;
+            border: ${isDark ? '1px solid rgba(255, 255, 255, 0.2)' : '2px solid transparent'} !important;
+            color: ${isDark ? '#ffffff' : 'inherit'} !important;
+        }
+
+    /* FIX: Make inputs readable in Spicy Mode */
+.bg-white\\/60 {
+    background-color: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.6)'} !important;
+    border: ${isDark ? '1px solid rgba(255, 255, 255, 0.2)' : 'transparent'} !important;
+}
+.bg-white\\/40 {
+    background-color: ${isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.4)'} !important;
+}
+
+    
+        /* --- TEXT COLORS --- */
+        .text-slate-800, .text-slate-900, .text-slate-700 { color: ${t.text} !important; }
+        .text-slate-500, .text-slate-400, .text-slate-600, .text-slate-300 { color: ${t.subtext} !important; }
+        
+        /* Make the "Rose" text (Remove button) pop in dark mode */
+        .text-rose-300 { color: ${isDark ? '#ffb3c1' : '#fda4af'} !important; }
+        
+        /* Inputs */
+        input, textarea { color: ${t.text} !important; }
+        ::placeholder { color: ${t.subtext} !important; opacity: 0.7; }
+        
+        /* Primary Buttons */
+        .btn-primary { background: ${t.accent} !important; color: white !important; }
+        
+        /* Hover Effects */
+        .group:hover .bg-slate-50 { background-color: ${isDark ? 'rgba(255,255,255,0.15)' : ''} !important; }
+    `;
+};
+
+
           
         // --- FOOTER COMPONENT ---
 function getFooter() {
@@ -353,6 +526,7 @@ function getFooter() {
         // --- RENDERER ---
         function render() {
             saveState();
+            applyTheme();
             const root = document.getElementById('app');
             
             // Loader
@@ -478,7 +652,7 @@ function getFooter() {
                             <div class="glass-panel p-6 rounded-pookie space-y-5">
                                 <div class="space-y-2">
                                     <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2">what do your pookies call you?🧸</label>
-                                    <input type="text" id="prof-name" value="${state.profile.name}" oninput="state.profile.name = this.value" class="w-full p-4 bg-white/50 rounded-2xl border border-white focus:border-rose-300 outline-none font-bold text-slate-700 text-lg" placeholder="e.g. Star Girl">
+                                    <input type="text" id="prof-name" value="${state.profile.name}" oninput="state.profile.name = this.value; saveState()" class="w-full p-4 bg-white/50 rounded-2xl border border-white focus:border-rose-300 outline-none font-bold text-slate-700 text-lg" placeholder="e.g. Star Girl">
                                 </div>
                                 <div class="space-y-2">
                                     <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2">Birthday</label>
@@ -519,10 +693,13 @@ function getFooter() {
                                         <p class="text-lg font-black text-slate-800 leading-none">${state.profile.name}</p>
                                     </div>
                                 </div>
-                                <div class="flex gap-2">
-                                    <button onclick="openDashboardConfirm()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="layout-dashboard" size="20"></i></button>
-                                    <button onclick="handleLogout()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="log-out" size="20"></i></button>
-                                </div>
+                               <div class="flex gap-2">
+    <button onclick="openVibePicker()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors animate-pulse"><i data-lucide="palette" size="20"></i></button>
+    
+    <button onclick="openDashboardConfirm()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="layout-dashboard" size="20"></i></button>
+    <button onclick="handleLogout()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="log-out" size="20"></i></button>
+</div>
+
                             </div>
 
                             <div class="grid grid-cols-3 gap-3 mb-8">
@@ -742,6 +919,9 @@ function getFooter() {
                                     ${reviewHtml}
                                 </div>
                             </div>
+                    <button onclick="resetAttempt()" class="w-full py-4 bg-white text-rose-400 rounded-full font-bold text-lg shadow-sm border-2 border-rose-100 mb-3 hover:bg-rose-50 transition-colors">
+    Next Person Plays 🔄
+</button>
 
                             <button onclick="handleStartOwnQuiz()" class="w-full py-4 btn-primary rounded-full font-bold text-lg shadow-xl sticky bottom-6">
                                 Create My Own 🍭
@@ -824,7 +1004,7 @@ function getFooter() {
                             
                             <header class="flex items-center justify-between relative z-30">
                                 <div class="flex items-center gap-3">
-                                    <button onclick="setView('${state.dashboardOrigin || 'create'}')" class="p-3 bg-white rounded-full shadow-sm text-slate-400 hover:text-rose-500 hover:scale-110 transition-transform">
+                                    <button onclick="setView('${state.dashboardOrigin || 'landing'}')" class="p-3 bg-white rounded-full shadow-sm text-slate-400 hover:text-rose-500 hover:scale-110 transition-transform">
                                         <i data-lucide="arrow-left" size="20"></i>
                                     </button>
                                     <div>
@@ -832,7 +1012,9 @@ function getFooter() {
                                         <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">${state.attempts.length} people played</p>
                                     </div>
                                 </div>
-                                <button onclick="setView('share')" class="p-3 bg-white rounded-full shadow-sm text-rose-400 hover:scale-110 transition-transform"><i data-lucide="share-2" size="20"></i></button>
+                                ${state.quizId ? 
+    `<button onclick="setView('share')" class="p-3 bg-white rounded-full shadow-sm text-rose-400 hover:scale-110 transition-transform"><i data-lucide="share-2" size="20"></i></button>` 
+    : '<div class="w-10"></div>'}
                             </header>
                                               <div class="grid grid-cols-2 gap-4 relative z-20">
                                 <button onclick="toggleDashboardTab('plays')" class="glass-panel p-6 rounded-[2rem] text-center transition-all ${state.activeDashboardTab === 'plays' ? 'ring-4 ring-rose-200 bg-white scale-[1.02]' : 'hover:bg-white hover:scale-[1.02]'}">
@@ -1010,7 +1192,7 @@ function getFooter() {
                             <h2 class="text-2xl font-black text-slate-800">Terms of Service 📜</h2>
                         </div>
 
-                        <div class="glass-panel p-6 rounded-[2rem] space-y-6 max-h-[70vh] overflow-y-auto hide-scroll text-sm font-bold text-slate-600">
+                        <div class="glass-panel p-6 rounded-[2rem] space-y-6 text-sm font-bold text-slate-600">
                             <div class="space-y-2">
                                 <h3 class="text-rose-500 font-black uppercase text-xs">1. Community Standards</h3>
                                 <p>By using this application, you agree to maintain respectful and responsible behavior. Content that includes bullying, hate speech, harassment, or harmful language is strictly prohibited. We reserve the right to remove any content that violates these guidelines.</p>
@@ -1046,7 +1228,7 @@ function getFooter() {
                             <h2 class="text-2xl font-black text-slate-800">Privacy Policy 🔒</h2>
                         </div>
 
-                        <div class="glass-panel p-6 rounded-[2rem] space-y-6 max-h-[70vh] overflow-y-auto hide-scroll text-sm font-bold text-slate-600">
+                        <div class="glass-panel p-6 rounded-[2rem] space-y-6 text-sm font-bold text-slate-600">
                             <p class="opacity-70 text-xs">Last Updated: Jan 2026</p>
                             
                             <div class="space-y-2">
@@ -1222,6 +1404,7 @@ function getFooter() {
                         </div>
                          <div>
                             <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-2">Birthday</label>
+                
                             <input type="date" oninput="handleProfileInput('dob', this.value)" value="${state.editDraft.dob || ''}" class="w-full p-3 rounded-2xl font-bold bg-slate-50 border-2 border-transparent focus:border-rose-300 outline-none text-slate-700">
                         </div>
                     </div>
@@ -1258,7 +1441,10 @@ if (state.viewingEnvelope) {
     modal.innerHTML = `
         <div class="w-full max-w-md mx-auto p-6 pb-20 animate-enter">
             <div class="flex items-center gap-3 mb-6 sticky top-0 bg-slate-50/95 py-4 z-20 border-b border-rose-100">
-                <button onclick="closeEnvelope()" class="p-3 bg-white rounded-full text-slate-400 shadow-sm hover:text-rose-500"><i data-lucide="x" size="20"></i></button>
+                <div class="flex items-center gap-2">
+                     <button onclick="closeEnvelope()" class="p-3 bg-white rounded-full text-slate-400 shadow-sm hover:text-rose-500"><i data-lucide="x" size="20"></i></button>
+                     <button onclick="navigator.clipboard.writeText('${window.location.origin}${window.location.pathname}?q=${archive.id}').then(() => pookieAlert('Old link copied! 💌', 'success'))" class="p-3 bg-rose-100 text-rose-500 rounded-full font-bold shadow-sm hover:scale-110 transition-transform"><i data-lucide="link" size="20"></i></button>
+                </div>
                 <div><h2 class="text-2xl font-black text-slate-800">Opened Memory 💌</h2><p class="text-xs font-bold text-slate-400">${new Date(env.timestamp).toLocaleDateString()}</p></div>
             </div>
             <div class="mb-6"><h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">The Questions</h3><div class="bg-white/60 p-4 rounded-2xl border border-white">${questionsHtml}</div></div>
@@ -1303,27 +1489,28 @@ if (state.showShareCard && state.activeQuiz && state.attemptResult) {
     modal.innerHTML = `
         <div class="w-full max-w-sm flex flex-col items-center animate-enter">
             
-            <div id="capture-card" class="w-full aspect-[9/16] bg-gradient-to-br from-rose-100 to-purple-100 relative rounded-[2rem] overflow-hidden shadow-2xl flex flex-col border-4 border-white">
+            <div id="capture-card" class="w-full aspect-[9/16] ${state.cardBg || 'bg-gradient-to-br from-rose-100 to-purple-100'} relative rounded-[2rem] overflow-hidden shadow-2xl flex flex-col border-4 border-white">
                 
                 <div class="absolute top-0 left-0 w-full h-full opacity-50">
-                    <div class="absolute top-[-10%] left-[-10%] w-64 h-64 bg-rose-300 rounded-full blur-3xl opacity-60"></div>
-                    <div class="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-purple-300 rounded-full blur-3xl opacity-60"></div>
-                </div>
+                    <div class="absolute top-[-10%] left-[-10%] w-64 h-64 bg-rose-300 rounded-full opacity-20"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-purple-300 rounded-full opacity-20"></div>
+     </div>
 
                 <div class="relative z-10 flex-1 flex flex-col p-6 items-center justify-between text-center">
                     
                     <div class="w-full flex justify-between items-center opacity-60">
-                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">KnowMe App</span>
-                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-600">${new Date().toLocaleDateString()}</span>
-                    </div>
+    <span class="text-[10px] font-black uppercase tracking-[0.2em] ${state.cardSubText}">KnowMe App</span>
+    <span class="text-[10px] font-black uppercase tracking-widest ${state.cardSubText}">${new Date().toLocaleDateString()}</span>
+</div>
+
 
                     <div class="flex-1 flex flex-col items-center justify-center gap-4">
-                        <div class="glass-panel px-6 py-2 rounded-full border border-white/50">
+                        <div class="px-6 py-2 rounded-full border border-white/50 bg-white/90 shadow-sm">
                             <span class="text-xs font-black uppercase tracking-widest text-rose-500">The Connection Report</span>
                         </div>
                         
                         <div class="relative">
-                            <h1 class="text-8xl font-black text-slate-800 leading-none tracking-tighter drop-shadow-sm">${score}/${total}</h1>
+                            <h1 class="text-8xl font-black ${state.cardText || 'text-slate-800'} leading-none tracking-tighter drop-shadow-sm">${score}/${total}</h1>
                             <div class="absolute -top-6 -right-8 bg-white text-rose-500 text-xs font-black px-2 py-1 rounded-lg transform rotate-12 shadow-sm border border-rose-100">
                                 ${Math.round(percent)}% MATCH
                             </div>
@@ -1331,18 +1518,23 @@ if (state.showShareCard && state.activeQuiz && state.attemptResult) {
 
                         <div class="space-y-1">
                             <h2 class="text-2xl font-black text-slate-700 uppercase tracking-tight">${vibeText}</h2>
-                            <p class="text-sm font-bold text-slate-500">${state.friendName} <span class="text-rose-400">×</span> ${state.activeQuiz.creatorName}</p>
+                           <p class="text-sm font-bold text-slate-500">
+    ${state.friendName} <span class="text-rose-400">×</span> 
+    ${state.tempCreatorName || (state.activeQuiz ? state.activeQuiz.creatorName : 'Creator')}
+</p>
+
                         </div>
                     </div>
 
-                    <div class="w-full glass-panel p-4 rounded-3xl flex items-center justify-between bg-white/60 backdrop-blur-xl border border-white">
+                    <div class="w-full p-4 rounded-3xl flex items-center justify-between bg-white/90 border border-white shadow-sm">
                         <div class="text-left">
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Play this quiz</p>
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                                <p class="text-xs font-black text-slate-700">Scan to beat my score</p>
-                            </div>
-                        </div>
+    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Play this quiz</p>
+    <div class="flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+        <p class="text-xs font-black ${state.cardSubText}">Scan to beat my score</p>
+    </div>
+</div>
+
                         <div id="share-qr" class="p-1 bg-white rounded-lg shadow-sm"></div>
                     </div>
 
@@ -1361,6 +1553,29 @@ if (state.showShareCard && state.activeQuiz && state.attemptResult) {
             <p class="mt-4 text-[10px] font-bold text-white/60">Tip: Post this to your story & add the link! 🔗</p>
         </div>`;
     root.appendChild(modal);
+}
+// --- NEW: Vibe Picker Modal ---
+if (state.showVibePicker) {
+    const modal = document.createElement('div');
+    modal.className = "fixed inset-0 z-[7000] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-6";
+    modal.innerHTML = `
+    <div class="bg-white p-6 rounded-[2rem] w-full max-w-xs shadow-2xl ${state.skipAnim ? '' : 'animate-enter'}">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-black text-slate-800">Choose Vibe ✨</h2>
+            <button onclick="closeVibePicker()" class="bg-slate-100 p-2 rounded-full text-slate-400"><i data-lucide="x" size="18"></i></button>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3">
+            ${Object.keys(THEMES).map(key => `
+                <button onclick="selectVibe('${key}')" class="p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${state.profile.vibe === key ? 'border-rose-400 bg-rose-50 scale-105' : 'border-slate-100 hover:border-rose-200'}">
+                    <div class="w-full h-8 rounded-xl shadow-sm" style="background: ${THEMES[key].accent}"></div>
+                    <span class="text-xs font-bold text-slate-600">${key}</span>
+                </button>
+            `).join('')}
+        </div>
+    </div>`;
+    root.appendChild(modal);
+    lucide.createIcons();
 }
 
 
@@ -1392,7 +1607,7 @@ if (state.showShareCard && state.activeQuiz && state.attemptResult) {
             const icon = type === 'error' ? 'alert-circle' : type === 'success' ? 'heart' : 'sparkles';
             if(type==='error') Sound.play('error'); else Sound.play('pop');
             
-            t.className = `pookie-toast flex items-center gap-3 px-6 py-4 rounded-full shadow-2xl text-white ${bg}`;
+            t.className = `pookie-toast flex items-center gap-3 px-6 py-4 rounded-full shadow-2xl text-white border border-white/20 ${bg}`;
             t.innerHTML = `<i data-lucide="${icon}" size="18"></i><span class="text-xs font-black tracking-wide">${msg}</span>`;
             c.appendChild(t);
             lucide.createIcons();
@@ -1412,10 +1627,40 @@ if (state.showShareCard && state.activeQuiz && state.attemptResult) {
             }, 800);
         };
         window.handleGuestMode = () => { state.isLoggedIn=false; state.isGuest=true; setView('profile'); };
-        window.handleLogout = () => { if(confirm("Really leave? 😢")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }};
+        window.handleLogout = () => { 
+    // FIX: Warn guests that logout = delete data
+    const msg = state.userEmail ? "Really log out? 🥺" : "⚠️ WAIT! As a Guest, logging out will DELETE your history & quizzes forever.\n\nAre you sure?";
+    
+    if(confirm(msg)) { 
+        localStorage.removeItem(STORAGE_KEY); 
+        location.reload(); 
+    }
+};
         
         window.handleNewProfile = () => { state.profile = {...defaultState.profile}; state.profileCompleted=false; setView('profile'); };
-        window.updateVibe = (v) => { state.profile.vibe = v; render(); };
+    
+        window.updateVibe = (v) => {
+    // 1. Update State & Save
+    state.profile.vibe = v;
+    saveState();
+
+    // 2. Apply Theme Colors Instantly
+    applyTheme();
+
+    // 3. Update Button Styles Manually to avoid "The Jump"
+    const buttons = document.querySelectorAll('button[onclick^="updateVibe"]');
+    buttons.forEach(btn => {
+        // Check if this button matches the clicked vibe
+        if (btn.getAttribute('onclick').includes(`'${v}'`)) {
+            // Active Style
+            btn.className = "py-3 px-1 text-[10px] font-bold rounded-xl transition-all bg-rose-400 text-white shadow-md scale-105";
+        } else {
+            // Inactive Style
+            btn.className = "py-3 px-1 text-[10px] font-bold rounded-xl transition-all bg-white/50 text-slate-400 hover:bg-white";
+        }
+    });
+};
+
         window.toggleDashboardTab = (tab) => {
     // 1. Remember where we are
     state.skipAnim = true;
@@ -1438,9 +1683,27 @@ if (state.showShareCard && state.activeQuiz && state.attemptResult) {
 };
 
 
-        window.handleZodiacCalc = (d) => { const nameInput = document.getElementById('prof-name');
-                                           if(nameInput) state.profile.name = nameInput.value; state.profile.dob=d; const z=getZodiac(d); state.profile.zodiac=z.n; state.profile.element=z.e; render(); };
-        window.setProfileName = (val) => {
+        window.handleZodiacCalc = (d) => { 
+    // 1. Save Scroll Position
+    state.skipAnim = true;
+    const y = window.scrollY;
+
+    const nameInput = document.getElementById('prof-name');
+    if(nameInput) state.profile.name = nameInput.value; 
+    
+    state.profile.dob = d; 
+    const z = getZodiac(d); 
+    state.profile.zodiac = z.n; 
+    state.profile.element = z.e; 
+    
+    render(); 
+    
+    // 2. Restore Scroll Position
+    window.scrollTo(0, y);
+    state.skipAnim = false;
+};
+
+    window.setProfileName = (val) => {
     state.profile.name = val;
 };
         window.saveProfile = () => {
@@ -1474,37 +1737,119 @@ if (state.showShareCard && state.activeQuiz && state.attemptResult) {
 
         window.setMode = (m) => { state.selectedMode = m; Sound.play('pop'); render(); };
         window.addQuestion = () => {
-            state.questions.push({ question: '', correctAnswer: '', isMultipleChoice: false, options: ['', ''] });
-            Sound.play('pop'); render();
-            setTimeout(() => document.getElementById('questionsList')?.lastElementChild?.scrollIntoView({behavior:'smooth'}), 100);
-        };
-        window.removeQuestion = (i) => { state.questions.splice(i, 1); render(); };
-        window.updateQuestion = (i,f,v) => { state.questions[i][f]=v; saveState(); };
+    // 1. Lock Scroll
+    state.skipAnim = true;
+    const y = window.scrollY;
+
+    // 2. Add Data
+    state.questions.push({ question: '', correctAnswer: '', isMultipleChoice: false, options: ['', ''] });
+    Sound.play('pop');
+    
+    // 3. Render & Instant Restore
+    render(); 
+    window.scrollTo(0, y);
+    
+    // 4. Double-Lock & Smooth Scroll
+    requestAnimationFrame(() => {
+        window.scrollTo(0, y); // Force position again
+        state.skipAnim = false;
+        
+        // Wait 50ms for layout to settle, THEN scroll to new card
+        setTimeout(() => {
+            const list = document.getElementById('questionsList');
+            if(list && list.lastElementChild) {
+                list.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 50);
+    });
+};
+
+
+        window.removeQuestion = (i) => { 
+    // 1. Lock Scroll
+    state.skipAnim = true;
+    const y = window.scrollY;
+    
+    // 2. Remove Data
+    state.questions.splice(i, 1); 
+    Sound.play('pop'); 
+    
+    // 3. Render & Instant Restore
+    render(); 
+    window.scrollTo(0, y);
+    
+    // 4. Double-Lock
+    requestAnimationFrame(() => {
+        window.scrollTo(0, y);
+        state.skipAnim = false;
+    });
+};
+
+
+    window.updateQuestion = (i,f,v) => { state.questions[i][f]=v; saveState(); };
         window.setCorrectAnswer = (i, v) => {
+    state.skipAnim = true;
+    const y = window.scrollY;
+
     state.questions[i].correctAnswer = v;
     saveState();
     render(); 
+    
+    window.scrollTo(0, y);
+    state.skipAnim = false;
 };
+
         window.toggleMultipleChoice = (i) => { 
+    // 1. Lock Scroll
+    state.skipAnim = true;
+    const y = window.scrollY;
+
+    // 2. Logic
     const isNowMulti = !state.questions[i].isMultipleChoice;
     state.questions[i].isMultipleChoice = isNowMulti;
-    
-    // Reset answer data to prevent logic conflicts
     state.questions[i].correctAnswer = ''; 
-    
-    // Ensure options exist if switching to Multi
     if (isNowMulti && state.questions[i].options.length < 2) {
         state.questions[i].options = ['', ''];
     }
     
+    // 3. Render & Instant Restore
     render(); 
+    window.scrollTo(0, y);
+    
+    // 4. THE DOUBLE-LOCK: Force it again in the next frame to kill the browser jump
+    requestAnimationFrame(() => {
+        window.scrollTo(0, y);
+        state.skipAnim = false;
+    });
 };
 
-        window.addOption = (qi) => { if(state.questions[qi].options.length<4) { state.questions[qi].options.push(''); render(); }};
+
+        window.addOption = (qi) => { 
+    if(state.questions[qi].options.length < 4) { 
+        state.skipAnim = true;
+        const y = window.scrollY;
+
+        state.questions[qi].options.push(''); 
+        render(); 
+
+        // FIX: Auto-focus the new option input
+        setTimeout(() => {
+            const inputs = document.querySelectorAll(`input[oninput^="updateOption(${qi}"]`);
+            if(inputs.length > 0) inputs[inputs.length - 1].focus();
+        }, 50);
+
+        window.scrollTo(0, y);
+        state.skipAnim = false;
+    }
+};
+
+
         window.removeOption = (qi, oi) => {
+    state.skipAnim = true;
+    const y = window.scrollY;
+
     const valToRemove = state.questions[qi].options[oi];
     
-    // If we are deleting the correct answer, clear it so you pick a new one
     if (state.questions[qi].correctAnswer === valToRemove) {
         state.questions[qi].correctAnswer = '';
     }
@@ -1512,7 +1857,11 @@ if (state.showShareCard && state.activeQuiz && state.attemptResult) {
     state.questions[qi].options.splice(oi, 1);
     saveState();
     render();
+
+    window.scrollTo(0, y);
+    state.skipAnim = false;
 };
+
 
         window.updateOption = (qi, oi, val) => {
     // 1. Get the old text before we change it
@@ -1570,51 +1919,81 @@ if (state.showShareCard && state.activeQuiz && state.attemptResult) {
         };
 
         window.confirmFinalCreation = async () => {
-            state.isLoading=true; state.loadingText="Manifesting link... 🔮"; render();
-            try {
-                const data = {
-                    creatorId: state.userEmail||'guest', creatorName: state.profile.name,
-                    questions: state.questions, mode: state.selectedMode, message: state.message||'',
-                    timestamp: new Date().toISOString(), attempts: []
-                };
-                const ref = await addDoc(collection(db, "quizzes"), data);
-                state.quizId = ref.id;
-                state.isLoading=false; Sound.play('success'); 
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                setView('share');
-            } catch(e) { console.error(e); state.isLoading=false; pookieAlert("Network error ☁️", "error"); }
+    state.isLoading = true; 
+    state.loadingText = "Manifesting link... 🔮"; 
+    render();
+
+    try {
+        const data = {
+            creatorId: state.userEmail || 'guest', 
+            creatorName: state.profile.name,
+            questions: state.questions, 
+            mode: state.selectedMode, 
+            message: state.message || '',
+            timestamp: new Date().toISOString()
+            // Note: We don't overwrite 'attempts' if updating
         };
+
+        if (state.quizId) {
+            // FIX: Update existing quiz instead of creating a duplicate
+            await updateDoc(doc(db, "quizzes", state.quizId), data);
+            pookieAlert("Quiz updated! 💅", "success");
+        } else {
+            // Create new quiz
+            data.attempts = []; // Init attempts only for new quiz
+            const ref = await addDoc(collection(db, "quizzes"), data);
+            state.quizId = ref.id;
+        }
+
+        state.isLoading = false; 
+        Sound.play('success'); 
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        setView('share');
+
+    } catch(e) { 
+        console.error(e); 
+        state.isLoading = false; 
+        render(); 
+        pookieAlert("Network error ☁️", "error"); 
+    }
+};
+
 
         window.copyLink = () => {
             navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?q=${state.quizId}`).then(() => pookieAlert("Link copied! 💌", "success"));
         };
 
         window.handleStartOwnQuiz = () => {
-    // --- NEW: Archive the current quiz before starting fresh ---
-    if (state.quizId && state.questions.length > 0) {
-        // Check if this quiz is already in history to avoid duplicates
+    // FIX: Only archive if WE created this quiz (userEmail matches creatorId)
+    // Or if we are in Guest mode, check if we just made it.
+    const isMyQuiz = state.view === 'share'; 
+
+    if (state.quizId && state.questions.length > 0 && isMyQuiz) {
         const alreadySaved = state.quizHistory.some(q => q.id === state.quizId);
         
         if (!alreadySaved) {
             state.quizHistory.push({
                 id: state.quizId,
                 timestamp: new Date().toISOString(),
-                // CRITICAL: Save a snapshot of the questions used in this quiz
                 questions: JSON.parse(JSON.stringify(state.questions)), 
                 mode: state.selectedMode
             });
-            saveState(); // Save to local storage immediately
+            saveState(); 
         }
     }
-    
 
     // Reset state for the new quiz
     state.questions = []; 
     state.friendAnswers = []; 
     state.attemptResult = null; 
     state.activeQuiz = null;
-    state.quizId = null; // Clear ID so we generate a new one later
+    state.quizId = null; 
 
+    // Auto-fill profile name if they just played as a guest
+    if (state.friendName) {
+        state.profile.name = state.friendName;
+    }
+            
     // Routing Logic
     if(state.profile.name && state.profile.dob) {
         setView('create'); 
@@ -1719,6 +2098,15 @@ window.toggleMemoryDropdown = () => {
             Sound.play('pop');
             render();
         };
+    window.resetAttempt = () => {
+    state.friendName = '';
+    state.friendAnswers = [];
+    state.attemptResult = null;
+    Sound.play('pop');
+    render();
+    window.scrollTo(0,0);
+};
+
 
         window.handleSubmitAttempt = async () => {
     if(state.friendAnswers.some(a => a === '')) { pookieAlert("Don't leave blanks! 🫣", "error"); return; }
@@ -1764,6 +2152,10 @@ window.toggleMemoryDropdown = () => {
     }
 };
          window.openEnvelope = async (index) => {
+    // 1. Save Scroll
+    state.skipAnim = true;
+    state.lastScrollY = window.scrollY; // Save to a state variable since we leave the view
+
     const archive = state.quizHistory[index];
     state.isLoading = true; state.loadingText = "Unsealing memory... 💌"; render();
     try {
@@ -1775,10 +2167,23 @@ window.toggleMemoryDropdown = () => {
             pookieAlert("This memory is lost 🍂", "error");
         }
     } catch (e) { console.error(e); pookieAlert("Could not open envelope", "error"); } 
-    finally { state.isLoading = false; render(); }
+    finally { 
+        state.isLoading = false; 
+        render(); 
+    }
 };
 
-window.closeEnvelope = () => { state.viewingEnvelope = null; render(); };
+window.closeEnvelope = () => { 
+    state.viewingEnvelope = null; 
+    
+    // 2. Restore Scroll
+    state.skipAnim = true;
+    render(); 
+    
+    if(state.lastScrollY) window.scrollTo(0, state.lastScrollY);
+    state.skipAnim = false;
+};
+
 
 window.openEnvelopeReceipt = (attemptIndex) => {
     state.viewingEnvelopeAttempt = state.viewingEnvelope.attempts[attemptIndex];
@@ -1789,6 +2194,14 @@ window.closeEnvelopeReceipt = () => { state.viewingEnvelopeAttempt = null; rende
 
         // --- SHARE CARD LOGIC ---
 window.openShareCard = () => {
+    // FIX: Set dynamic card colors
+    // Inside window.openShareCard...
+const isDark = state.profile.vibe === '🔥 Spicy';
+state.cardBg = isDark ? 'bg-zinc-900' : 'bg-gradient-to-br from-rose-100 to-purple-100';
+state.cardText = isDark ? 'text-white' : 'text-slate-800';
+// NEW: Add a color for small text
+state.cardSubText = isDark ? 'text-slate-400' : 'text-slate-600';
+
     state.showShareCard = true;
     Sound.play('pop');
     render();
@@ -1857,7 +2270,7 @@ window.downloadShareCard = () => {
 window.shareFromDashboard = () => {
     // 1. Prepare the data for the card
     // We use your profile name because YOU are the creator viewing the dashboard
-    state.activeQuiz = { creatorName: state.profile.name }; 
+    state.tempCreatorName = state.profile.name; 
     state.attemptResult = state.viewingAttempt;
     state.friendName = state.viewingAttempt.friendName;
     
@@ -1881,6 +2294,32 @@ window.shareFromDashboard = () => {
             state.viewingAttempt = null;
             render();
         };
+
+    window.openVibePicker = () => { state.showVibePicker = true; render(); };
+window.closeVibePicker = () => { state.showVibePicker = false; render(); };
+
+    window.selectVibe = (v) => {
+    // 1. Update State
+    state.profile.vibe = v;
+    saveState();
+    Sound.play('pop');
+
+    // 2. Apply Theme Colors Instantly
+    applyTheme();
+
+    // 3. Update Button Styles Manually (Keeps modal stable)
+    const buttons = document.querySelectorAll('button[onclick^="selectVibe"]');
+    buttons.forEach(btn => {
+        if (btn.getAttribute('onclick').includes(`'${v}'`)) {
+            // Active Style
+            btn.className = "p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 border-rose-400 bg-rose-50 scale-105";
+        } else {
+            // Inactive Style
+            btn.className = "p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 border-slate-100 hover:border-rose-200";
+        }
+    });
+};
+
 
 
         function getZodiac(dateStr) {
@@ -1933,7 +2372,11 @@ window.shareFromDashboard = () => {
                     render();
                 }
             } else {
-                if (state.profileCompleted && state.view !== 'create') state.view = 'create';
+                // FIX: Don't kick user out of Share or Dashboard on refresh
+if (state.profileCompleted && !['create', 'share', 'dashboard'].includes(state.view)) {
+    state.view = 'create';
+}
+
                 render();
             }
             

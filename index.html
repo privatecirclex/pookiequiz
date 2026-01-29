@@ -1924,40 +1924,53 @@ if (state.showVibePicker) {
     render();
 
     try {
+        // 1. LOGIC FIX: Sanitize Data
+        // Ensure no 'undefined' values exist (which crash Firebase immediately)
+        const cleanQuestions = state.questions.map(q => ({
+            question: q.question || '',
+            correctAnswer: q.correctAnswer || '',
+            isMultipleChoice: !!q.isMultipleChoice,
+            options: Array.isArray(q.options) ? q.options.map(o => o || '') : []
+        }));
+
+        // 2. Prepare Safe Payload
         const data = {
             creatorId: state.userEmail || 'guest', 
-            creatorName: state.profile.name,
-            questions: state.questions, 
-            mode: state.selectedMode, 
+            creatorName: state.profile.name || 'Anonymous',
+            questions: cleanQuestions, 
+            mode: state.selectedMode || 'friends', 
             message: state.message || '',
             timestamp: new Date().toISOString()
             // Note: We don't overwrite 'attempts' if updating
         };
 
+        // 3. Database Operation
         if (state.quizId) {
-            // FIX: Update existing quiz instead of creating a duplicate
+            // LOGIC FIX: Use setDoc with merge. 
+            // This fixes the "Zombie ID" error by creating the doc if it's missing.
             await setDoc(doc(db, "quizzes", state.quizId), data, { merge: true });
-
             pookieAlert("Quiz updated! 💅", "success");
         } else {
-            // Create new quiz
-            data.attempts = []; // Init attempts only for new quiz
+            // Create New
+            data.attempts = []; 
             const ref = await addDoc(collection(db, "quizzes"), data);
             state.quizId = ref.id;
         }
 
+        // 4. Success
         state.isLoading = false; 
         Sound.play('success'); 
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         setView('share');
 
     } catch(e) { 
-        console.error(e); 
+        console.error("Save Error:", e); 
         state.isLoading = false; 
         render(); 
-        pookieAlert("Network error ☁️", "error"); 
+        pookieAlert("Could not save. Try again! ☁️", "error"); 
     }
 };
+
 
 
         window.copyLink = () => {

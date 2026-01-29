@@ -1,14 +1,18 @@
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KnowMe - Pookie Edition ✨</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  <meta content='B0F70FCD9E97F8CD852B3F3806BF3814' name='msvalidate.01'/>
+    <meta charset='UTF-8'/>
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' name='viewport'/>
+    <title>KnowMe - Pookie Edition &#10024;</title>
+    <script src='https://cdn.tailwindcss.com'></script>
+    <script src='https://unpkg.com/lucide@latest'></script>
+    <script src='https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js'></script>
+    <style> 
+
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&amp;display=swap');
         
         body {
             font-family: 'Nunito', sans-serif;
@@ -103,18 +107,21 @@
         @keyframes slideUp { from { transform: translateY(150%) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
     </style>
 </head>
-<body class="text-slate-800 selection:bg-rose-200">
+<body class='text-slate-800 selection:bg-rose-200'>
 
-    <div class="animated-bg">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
+    <div class='animated-bg'>
+        <div class='blob blob-1'></div>
+        <div class='blob blob-2'></div>
+        <div class='blob blob-3'></div>
     </div>
 
-    <div id="app" class="relative z-10"></div>
-    <div id="toast-container" class="fixed bottom-8 left-0 right-0 z-[5000] flex flex-col items-center pointer-events-none gap-2 px-4"></div>
+    <div class='relative z-10' id='app'></div>
+    <div class='fixed bottom-8 left-0 right-0 z-[5000] flex flex-col items-center pointer-events-none gap-2 px-4' id='toast-container'></div>
 
-    <script type="module">
+    <script type='module'>
+   
+     
+    
         // --- IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
@@ -213,6 +220,7 @@
         // --- STATE ---
         const defaultState = {
             view: 'landing',
+            viewingAttempt: null,
             isLoading: false,
             loadingText: 'Loading...',
             isLoggedIn: false,
@@ -223,6 +231,9 @@
             questions: [],
             activeQuiz: null,
             quizId: null,
+            quizHistory: [],
+            viewingEnvelope: null,
+            viewingEnvelopeAttempt: null,
             friendName: '',
             friendAnswers: [],
             attemptResult: null,
@@ -311,9 +322,28 @@
         const MODES = {
             friends: { label: 'Besties', icon: 'users', emoji: '👯‍♀️', color: 'text-blue-400' },
             couple: { label: 'Pookies', icon: 'heart', emoji: '💑', color: 'text-rose-500' },
-            crush: { label: 'Crush', icon: 'zap', emoji: '👀', color: 'text-purple-400' }
+            crush: { label: 'special someone', icon: 'zap', emoji: '👀', color: 'text-purple-400' }
         };
+          
+        // --- FOOTER COMPONENT ---
+function getFooter() {
+    return `
+    <div class="py-8 text-center space-y-2 opacity-60 relative z-10">
+        <div class="flex justify-center gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            <button onclick="openLegal('about')" class="hover:text-rose-500 transition-colors">About</button>
+            <span>•</span>
+            <button onclick="openLegal('terms')" class="hover:text-rose-500 transition-colors">Terms</button>
+            <span>•</span>
+            <button onclick="openLegal('privacy')" class="hover:text-rose-500 transition-colors">Privacy</button>
+            <span>•</span>
+            <button onclick="openLegal('contact')" class="hover:text-rose-500 transition-colors">Contact</button>
 
+        </div>
+        <p class="text-[10px] text-slate-400">© ${new Date().getFullYear()} KnowMe Pookie Edition. Crafted in Kashmir.</p>
+    </div>`;
+}
+
+        
         // --- RENDERER ---
         function render() {
             saveState();
@@ -369,6 +399,7 @@
                                 <span class="relative z-10 flex items-center justify-center gap-2">Let's Start <i data-lucide="arrow-right" size="18"></i></span>
                             </button>
                         </div>
+                ${getFooter()} 
                         ${soundBtn}
                     </div>`;
                     break;
@@ -785,9 +816,9 @@
                     <div class="no-scroll p-6">
                         <div class="w-full max-w-md mx-auto space-y-6 animate-enter pb-10">
                             
-                            <header class="flex items-center justify-between">
+                            <header class="flex items-center justify-between relative z-30">
                                 <div class="flex items-center gap-3">
-                                    <button onclick="setView('${state.previousView || 'create'}')" class="p-3 bg-white rounded-full shadow-sm text-slate-400 hover:text-rose-500 hover:scale-110 transition-transform">
+                                    <button onclick="setView('${state.dashboardOrigin || 'create'}')" class="p-3 bg-white rounded-full shadow-sm text-slate-400 hover:text-rose-500 hover:scale-110 transition-transform">
                                         <i data-lucide="arrow-left" size="20"></i>
                                     </button>
                                     <div>
@@ -798,6 +829,32 @@
                                 <button onclick="setView('share')" class="p-3 bg-white rounded-full shadow-sm text-rose-400 hover:scale-110 transition-transform"><i data-lucide="share-2" size="20"></i></button>
                             </header>
                             
+
+${state.quizHistory.length > 0 ? `
+    <div class="py-2">
+        <div class="flex items-center gap-2 mb-3 ml-1 opacity-70">
+            <i data-lucide="archive" size="14" class="text-rose-400"></i>
+            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Memory Box</h3>
+        </div>
+        <div class="flex gap-3 overflow-x-auto hide-scroll pb-4">
+            ${state.quizHistory.map((env, i) => `
+                <button onclick="openEnvelope(${i})" class="flex-shrink-0 w-24 group">
+                    <div class="relative">
+                        <div class="absolute inset-x-0 -top-2 h-4 bg-rose-100 rounded-t-lg transform origin-bottom transition-transform group-hover:rotate-x-180 z-10 border-t border-rose-200"></div>
+                        <div class="h-20 bg-white border border-rose-100 shadow-sm rounded-lg flex items-center justify-center relative overflow-hidden group-hover:shadow-rose-200 group-hover:shadow-lg transition-all">
+                            <div class="absolute inset-0 bg-gradient-to-br from-white to-rose-50 opacity-50"></div>
+                            <div class="text-center relative z-20">
+                                <div class="text-xl mb-1 opacity-50 grayscale group-hover:grayscale-0 transition-all">${MODES[env.mode||'friends'].emoji}</div>
+                                <div class="text-[9px] font-black text-slate-400 uppercase">${new Date(env.timestamp).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</div>
+                            </div>
+                        </div>
+                    </div>
+                </button>
+            `).reverse().join('')}
+        </div>
+    </div>
+` : ''}
+
                             <div class="grid grid-cols-2 gap-4 relative z-20">
                                 <button onclick="toggleDashboardTab('plays')" class="glass-panel p-6 rounded-[2rem] text-center transition-all ${state.activeDashboardTab === 'plays' ? 'ring-4 ring-rose-200 bg-white scale-[1.02]' : 'hover:bg-white hover:scale-[1.02]'}">
                                     <div class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-purple-500">${state.attempts.length}</div>
@@ -864,26 +921,177 @@
                                     </div>
                                 ` : `
                                     <div class="space-y-3">
-                                        ${sortedByScore.map((a, i) => `
-                                            <div class="glass-panel p-4 rounded-2xl flex items-center justify-between">
+                                        ${sortedByScore.map((a, i) => {
+                                            const realIndex = state.attempts.indexOf(a);
+                                            return `
+                                            <button onclick="openAttemptDetail(${realIndex})" class="w-full glass-panel p-4 rounded-2xl flex items-center justify-between hover:scale-[1.02] transition-transform text-left group">
                                                 <div class="flex items-center gap-4">
                                                     <div class="w-6 text-center font-bold text-slate-300 text-xs">${i+1}</div>
                                                     <div>
                                                         <h4 class="font-bold text-slate-800 text-sm">${a.friendName}</h4>
+                                                        <p class="text-[10px] font-bold text-slate-400">Tap to see answers 🧾</p>
                                                     </div>
                                                 </div>
-                                                <div class="bg-white/80 px-3 py-1 rounded-lg shadow-sm">
-                                                    <span class="font-black text-rose-500">${a.score}</span><span class="text-xs font-bold text-slate-300">/${state.attempts.length > 0 ? state.attempts[0].total : 0}</span>
+                                                <div class="flex items-center gap-3">
+                                                    <div class="bg-white/80 px-3 py-1 rounded-lg shadow-sm">
+                                                        <span class="font-black text-rose-500">${a.score}</span><span class="text-xs font-bold text-slate-300">/${state.attempts.length > 0 ? state.attempts[0].total : 0}</span>
+                                                    </div>
+                                                    <i data-lucide="chevron-right" class="text-rose-300 group-hover:text-rose-500" size="16"></i>
                                                 </div>
-                                            </div>
-                                        `).join('')}
+                                            </button>
+                                        `}).join('')}
                                     </div>
                                 `}
                             </div>
                         </div>
+                ${getFooter()} 
                         ${soundBtn}
                     </div>`;
                     break;
+                            // --- NEW LEGAL & INFO PAGES ---
+            case 'about':
+                html = `
+                <div class="no-scroll p-6 items-center">
+                    <div class="w-full max-w-md animate-enter pb-10">
+                        <div class="flex items-center gap-3 mb-6">
+                            <button onclick="setView('${state.previousView || 'landing'}')"
+ class="p-3 bg-white rounded-full text-slate-400 shadow-sm hover:text-rose-500"><i data-lucide="arrow-left" size="20"></i></button>
+                            <h2 class="text-3xl font-black text-slate-800">About Us 🏔️</h2>
+                        </div>
+
+                        <div class="glass-panel p-8 rounded-[2rem] space-y-6 text-center relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-400 to-purple-400"></div>
+                            
+                            <div class="w-24 h-24 bg-slate-800 text-white rounded-full mx-auto flex items-center justify-center text-4xl shadow-xl animate-float-slow">
+                                👨‍💻
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <h3 class="text-xl font-black text-slate-800">Hi, I'm Lone Suhaib!</h3>
+                                <p class="text-xs font-bold text-rose-500 uppercase tracking-widest">Indie Developer</p>
+                            </div>
+
+                            <p class="text-slate-600 font-bold leading-relaxed">
+                                I developed <span class="text-rose-500">KnowMe Pookie Edition</span> as a lighthearted interactive platform that helps friends discover how well they know each other in a fun and engaging way.
+                            </p>
+
+                            <div class="bg-white/50 p-4 rounded-xl text-xs font-bold text-slate-500 border border-white">
+                                Crafted with care in the valleys of Kashmir.
+                            </div>
+                        </div>
+                    </div>
+                    ${soundBtn}
+                </div>`;
+                break;
+
+            case 'terms':
+                html = `
+                <div class="no-scroll p-6 items-center">
+                    <div class="w-full max-w-md animate-enter pb-10">
+                        <div class="flex items-center gap-3 mb-6">
+                            <button onclick="setView('${state.previousView || 'landing'}')"
+ class="p-3 bg-white rounded-full text-slate-400 shadow-sm hover:text-rose-500"><i data-lucide="arrow-left" size="20"></i></button>
+                            <h2 class="text-2xl font-black text-slate-800">Terms of Service 📜</h2>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-[2rem] space-y-6 max-h-[70vh] overflow-y-auto hide-scroll text-sm font-bold text-slate-600">
+                            <div class="space-y-2">
+                                <h3 class="text-rose-500 font-black uppercase text-xs">1. Community Standards</h3>
+                                <p>By using this application, you agree to maintain respectful and responsible behavior. Content that includes bullying, hate speech, harassment, or harmful language is strictly prohibited. We reserve the right to remove any content that violates these guidelines.</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <h3 class="text-rose-500 font-black uppercase text-xs">2. Use of the Platform</h3>
+                                <p>KnowMe – Pookie Edition is intended solely for entertainment and self-expression. The platform <span class="underline">does not take responsibility</span> for any personal disagreements or misunderstandings that may arise from the use of quizzes or results.</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <h3 class="text-rose-500 font-black uppercase text-xs">3. Age Requirement</h3>
+                                <p>Users must be at least 14 years old to use this application. If you are under the required age, please refrain from using the platform.</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <h3 class="text-rose-500 font-black uppercase text-xs">4. Jurisdiction</h3>
+                                <p>These Terms and Conditions shall be governed and interpreted in accordance with the laws applicable in <strong>Kashmir</strong> (Indian Administered). Any disputes will be subject to local jurisdiction.</p>
+                            </div>
+                        </div>
+                    </div>
+                    ${soundBtn}
+                </div>`;
+                break;
+
+            case 'privacy':
+                html = `
+                <div class="no-scroll p-6 items-center">
+                    <div class="w-full max-w-md animate-enter pb-10">
+                        <div class="flex items-center gap-3 mb-6">
+                            <button onclick="setView('${state.previousView || 'landing'}')"
+ class="p-3 bg-white rounded-full text-slate-400 shadow-sm hover:text-rose-500"><i data-lucide="arrow-left" size="20"></i></button>
+                            <h2 class="text-2xl font-black text-slate-800">Privacy Policy 🔒</h2>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-[2rem] space-y-6 max-h-[70vh] overflow-y-auto hide-scroll text-sm font-bold text-slate-600">
+                            <p class="opacity-70 text-xs">Last Updated: Jan 2026</p>
+                            
+                            <div class="space-y-2">
+                                <h3 class="text-rose-500 font-black uppercase text-xs">1. Information We Collect</h3>
+                                <p>We collect basic information such as the name, date of birth (for zodiac-related features), and quiz content voluntarily provided by users. This data is securely stored using Google Firebase services.</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <h3 class="text-rose-500 font-black uppercase text-xs">2. Cookies and Advertising</h3>
+                                <p>The platform may use cookies and display advertisements in the future to support development and maintenance. By continuing to use the service, you consent to such use.</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <h3 class="text-rose-500 font-black uppercase text-xs">3. Your Rights</h3>
+                                <p>Users may request deletion of their personal data by contacting us at <strong>hellopookiequiz@gmail.com</strong> .Upon verification, we will remove the requested information.</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <h3 class="text-rose-500 font-black uppercase text-xs">4. Service Location and Compliance</h3>
+                                <p>This service operates from Kashmir (Indian Administered) and strives to follow applicable local and international data protection and privacy regulations.</p>
+                            </div>
+                        </div>
+                    </div>
+                    ${soundBtn}
+                </div>`;
+                break;
+
+            case 'contact':
+                html = `
+                <div class="no-scroll p-6 items-center">
+                    <div class="w-full max-w-md animate-enter pb-10">
+                        <div class="flex items-center gap-3 mb-6">
+                            <button onclick="setView('${state.previousView || 'landing'}')"
+ class="p-3 bg-white rounded-full text-slate-400 shadow-sm hover:text-rose-500"><i data-lucide="arrow-left" size="20"></i></button>
+                            <h2 class="text-3xl font-black text-slate-800">Contact Us 💌</h2>
+                        </div>
+
+                        <div class="glass-panel p-8 rounded-[2rem] space-y-6 text-center">
+                            <div class="w-20 h-20 bg-rose-100 text-rose-500 rounded-full mx-auto flex items-center justify-center animate-bounce">
+                                <i data-lucide="mail" size="32"></i>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <h3 class="text-xl font-black text-slate-800">Got Feedback?</h3>
+                                <p class="text-slate-500 font-bold text-sm">Found a bug or just want to say hi?</p>
+                            </div>
+
+                            <a href="mailto:hellopookiequiz@gmail.com" class="block w-full py-4 btn-primary rounded-xl font-bold text-lg shadow-xl">
+                                Email Us
+                            </a>
+                            
+                            <p class="text-xs font-bold text-slate-400 pt-4">
+                                hellopookiequiz@gmail.com<br>
+                                Based in Kashmir 🏔️
+                            </p>
+                        </div>
+                    </div>
+                    ${soundBtn}
+                </div>`;
+                break;
+
 
             }
 
@@ -893,6 +1101,46 @@
         }
 
         function renderModals(root) {
+            // --- NEW: Attempt Detail Popup ---
+            if (state.viewingAttempt) {
+                const attempt = state.viewingAttempt;
+                // Generate the list of answers
+                const reviewList = state.questions.map((q, i) => {
+                    const userAns = attempt.answers[i] || "Skipped";
+                    const isCorrect = userAns.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim();
+                    return `
+                    <div class="glass-panel p-4 rounded-2xl mb-3 border-l-4 ${isCorrect ? 'border-emerald-400 bg-emerald-50/50' : 'border-rose-400 bg-rose-50/50'}">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="font-bold text-slate-700 text-sm pr-2 leading-tight">${q.question}</p>
+                            ${isCorrect ? '<div class="bg-emerald-100 text-emerald-600 p-1 rounded-full"><i data-lucide="check" size="14"></i></div>' : '<div class="bg-rose-100 text-rose-500 p-1 rounded-full"><i data-lucide="x" size="14"></i></div>'}
+                        </div>
+                        <div class="space-y-1 bg-white/60 p-2 rounded-lg">
+                            <div class="text-xs font-bold text-slate-500 flex items-center justify-between">
+                                <span>They said:</span>
+                                <span class="${isCorrect ? 'text-emerald-600' : 'text-rose-500 line-through'}">${userAns}</span>
+                            </div>
+                            ${!isCorrect ? `<div class="text-xs font-black text-emerald-600 flex items-center justify-between border-t border-slate-200/50 pt-1 mt-1"><span>Correct:</span><span>${q.correctAnswer}</span></div>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+
+                const modal = document.createElement('div');
+                modal.className = "fixed inset-0 z-[7000] bg-slate-50/95 backdrop-blur-xl overflow-y-auto no-scroll";
+                modal.innerHTML = `
+                    <div class="w-full max-w-md mx-auto p-6 pb-20 animate-enter">
+                        <div class="flex items-center gap-3 mb-6 sticky top-0 bg-slate-50/95 backdrop-blur-md py-4 z-20 -mx-6 px-6 border-b border-rose-100">
+                            <button onclick="closeAttemptDetail()" class="p-3 bg-white rounded-full text-slate-400 shadow-sm hover:text-rose-500 border border-slate-100"><i data-lucide="arrow-left" size="20"></i></button>
+                            <div>
+                                <h2 class="text-2xl font-black text-slate-800">${attempt.friendName}'s Tea 🍵</h2>
+                                <p class="text-xs font-bold text-slate-400">Score: ${attempt.score}/${attempt.total}</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2">${reviewList}</div>
+                        <div class="mt-8 mb-4"><button onclick="closeAttemptDetail()" class="w-full py-4 btn-secondary rounded-full font-bold">Close Receipt</button></div>
+                    </div>`;
+                root.appendChild(modal);
+            }
+
             // Re-used modal logic with better styling
             if (state.showDashboardConfirm) {
                 const modal = document.createElement('div');
@@ -959,9 +1207,75 @@
                 root.appendChild(modal);
                 lucide.createIcons();
             }
+         
+
+if (state.viewingEnvelope) {
+    const env = state.viewingEnvelope;
+    const questionsHtml = env.questions.map((q, i) => `
+        <div class="text-xs text-slate-500 mb-1 border-b border-slate-100 pb-1 last:border-0">
+            <span class="font-black text-rose-400 mr-1">${i+1}.</span> ${q.question}
+        </div>`).join('');
+
+    const resultsHtml = env.attempts.length === 0 ? 
+        `<div class="text-center py-8 opacity-50 text-sm font-bold text-slate-400">No receipts found inside 🕸️</div>` :
+        env.attempts.map((a, i) => `
+            <button onclick="openEnvelopeReceipt(${i})" class="w-full glass-panel p-3 rounded-xl flex items-center justify-between mb-2 hover:bg-white transition-colors">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-500">${i+1}</div>
+                    <div class="text-left">
+                        <div class="font-bold text-slate-700 text-sm">${a.friendName}</div>
+                        <div class="text-[9px] font-bold text-slate-400">Score: ${a.score}/${env.questions.length}</div>
+                    </div>
+                </div>
+                <i data-lucide="eye" size="14" class="text-rose-300"></i>
+            </button>`).join('');
+
+    const modal = document.createElement('div');
+    modal.className = "fixed inset-0 z-[7000] bg-slate-50/95 backdrop-blur-xl overflow-y-auto no-scroll";
+    modal.innerHTML = `
+        <div class="w-full max-w-md mx-auto p-6 pb-20 animate-enter">
+            <div class="flex items-center gap-3 mb-6 sticky top-0 bg-slate-50/95 py-4 z-20 border-b border-rose-100">
+                <button onclick="closeEnvelope()" class="p-3 bg-white rounded-full text-slate-400 shadow-sm hover:text-rose-500"><i data-lucide="x" size="20"></i></button>
+                <div><h2 class="text-2xl font-black text-slate-800">Opened Memory 💌</h2><p class="text-xs font-bold text-slate-400">${new Date(env.timestamp).toLocaleDateString()}</p></div>
+            </div>
+            <div class="mb-6"><h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">The Questions</h3><div class="bg-white/60 p-4 rounded-2xl border border-white">${questionsHtml}</div></div>
+            <div><h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">The Results</h3><div class="space-y-1">${resultsHtml}</div></div>
+        </div>`;
+    root.appendChild(modal);
+}
+
+if (state.viewingEnvelopeAttempt) {
+    const attempt = state.viewingEnvelopeAttempt;
+    const reviewHtml = state.viewingEnvelope.questions.map((q, i) => {
+        const userAns = attempt.answers[i] || "Skipped";
+        const isCorrect = userAns.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim();
+        return `
+        <div class="glass-panel p-4 rounded-2xl mb-3 border-l-4 ${isCorrect ? 'border-emerald-400 bg-emerald-50/50' : 'border-rose-400 bg-rose-50/50'}">
+            <div class="flex justify-between items-start mb-2"><p class="font-bold text-slate-700 text-sm pr-2 leading-tight">${q.question}</p>${isCorrect ? '<i data-lucide="check" size="14" class="text-emerald-500"></i>' : '<i data-lucide="x" size="14" class="text-rose-500"></i>'}</div>
+            <div class="text-xs font-bold text-slate-500"><span class="${isCorrect ? 'text-emerald-600' : 'text-rose-500 line-through'}">${userAns}</span>${!isCorrect ? `<span class="text-emerald-600 ml-2">Correct: ${q.correctAnswer}</span>` : ''}</div>
+        </div>`;
+    }).join('');
+
+    const modal = document.createElement('div');
+    modal.className = "fixed inset-0 z-[8000] bg-white/95 backdrop-blur-xl overflow-y-auto no-scroll";
+    modal.innerHTML = `
+        <div class="w-full max-w-md mx-auto p-6 pb-20 animate-enter">
+            <div class="flex items-center gap-3 mb-6"><button onclick="closeEnvelopeReceipt()" class="p-3 bg-white rounded-full border border-slate-100"><i data-lucide="arrow-left" size="20"></i></button><h2 class="text-xl font-black text-slate-800">${attempt.friendName}'s Past Result</h2></div>
+            <div class="space-y-2">${reviewHtml}</div>
+        </div>`;
+    root.appendChild(modal);
+}
+
         }
 
         // --- ACTIONS ---
+                window.openLegal = (v) => {
+            if (!['about', 'terms', 'privacy', 'contact'].includes(state.view)) {
+                state.previousView = state.view; 
+            }
+            setView(v);
+        };
+
         window.setView = (v) => {
     if (state.view === 'dashboard' && v !== 'dashboard' && state.unsubscribe) {
         state.unsubscribe();
@@ -1167,23 +1481,40 @@
         };
 
         window.handleStartOwnQuiz = () => {
-    // Reset state for a fresh start
-    state.quizId = null; 
+    // --- NEW: Archive the current quiz before starting fresh ---
+    if (state.quizId && state.questions.length > 0) {
+        // Check if this quiz is already in history to avoid duplicates
+        const alreadySaved = state.quizHistory.some(q => q.id === state.quizId);
+        
+        if (!alreadySaved) {
+            state.quizHistory.push({
+                id: state.quizId,
+                timestamp: new Date().toISOString(),
+                // CRITICAL: Save a snapshot of the questions used in this quiz
+                questions: JSON.parse(JSON.stringify(state.questions)), 
+                mode: state.selectedMode
+            });
+            saveState(); // Save to local storage immediately
+        }
+    }
+    
+
+    // Reset state for the new quiz
     state.questions = []; 
     state.friendAnswers = []; 
     state.attemptResult = null; 
     state.activeQuiz = null;
+    state.quizId = null; // Clear ID so we generate a new one later
 
-    // FIX: If profile exists, go to create. Otherwise, go to AUTH (not landing)
+    // Routing Logic
     if(state.profile.name && state.profile.dob) {
         setView('create'); 
     } else {
         setView('auth'); 
     }
-    
-    // Clear URL params
     window.history.pushState({}, document.title, window.location.pathname);
 };
+
 
 
         window.openDashboardConfirm = () => { 
@@ -1207,11 +1538,14 @@
             try {
                 state.unsubscribe = onSnapshot(doc(db, "quizzes", state.quizId), (docSnap) => {
                     if (docSnap.exists()) {
-                        state.attempts = docSnap.data().attempts || [];
+                        const data = docSnap.data();
+                        state.attempts = data.attempts || [];
+                        if(data.questions) state.questions = data.questions; // <--- NEW: Save questions
                         state.isLoading = false;
                         
                         // 2. Save it to state before switching views
-                        state.previousView = originView;
+                        state.dashboardOrigin = originView;
+
                         
                         setView('dashboard');
                     }
@@ -1288,9 +1622,44 @@
         pookieAlert("Error submitting 😭", "error");
     }
 };
+         window.openEnvelope = async (index) => {
+    const archive = state.quizHistory[index];
+    state.isLoading = true; state.loadingText = "Unsealing memory... 💌"; render();
+    try {
+        const docSnap = await getDoc(doc(db, "quizzes", archive.id));
+        if (docSnap.exists()) {
+            state.viewingEnvelope = { ...archive, attempts: docSnap.data().attempts || [] };
+            Sound.play('pop');
+        } else {
+            pookieAlert("This memory is lost 🍂", "error");
+        }
+    } catch (e) { console.error(e); pookieAlert("Could not open envelope", "error"); } 
+    finally { state.isLoading = false; render(); }
+};
+
+window.closeEnvelope = () => { state.viewingEnvelope = null; render(); };
+
+window.openEnvelopeReceipt = (attemptIndex) => {
+    state.viewingEnvelopeAttempt = state.viewingEnvelope.attempts[attemptIndex];
+    render();
+};
+
+window.closeEnvelopeReceipt = () => { state.viewingEnvelopeAttempt = null; render(); };
+
+        
+               // --- UTILITIES ---
+                window.openAttemptDetail = (index) => {
+            state.viewingAttempt = state.attempts[index];
+            Sound.play('pop');
+            render();
+        };
+
+        window.closeAttemptDetail = () => {
+            state.viewingAttempt = null;
+            render();
+        };
 
 
-        // --- UTILITIES ---
         function getZodiac(dateStr) {
     // Split the "YYYY-MM-DD" string and turn parts into numbers
     const parts = dateStr.split('-');
@@ -1362,7 +1731,8 @@ document.addEventListener('touchstart', unlockAudio);
         }
 
         initApp();
+     
     </script>
+  
 </body>
 </html>
-

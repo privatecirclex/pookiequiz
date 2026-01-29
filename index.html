@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -1943,60 +1942,61 @@ if (state.showVibePicker) {
     state.loadingText = "Manifesting link... 🔮"; 
     render();
 
-    // NEW: Security Check - Ensure user is actually connected
-    if (!auth.currentUser) {
-        try {
-            console.log("User not signed in, attempting auto-login...");
-            await signInAnonymously(auth);
-        } catch (e) {
-            console.error("Auto-login failed:", e);
-            state.isLoading = false;
-            render();
-            pookieAlert("Connection error. Refresh & try again! 😭", "error");
-            return;
-        }
-    }
-
     try {
-        // 1. Sanitize Data (Keep this safe)
+        // --- 1. SECURE CONNECTION CHECK ---
+        // We create a local variable 'user' to ensure stability
+        let user = auth.currentUser;
+        
+        if (!user) {
+            console.log("Connection lost. Re-establishing...");
+            const userCredential = await signInAnonymously(auth);
+            user = userCredential.user;
+        }
+
+        // --- 2. DATA CLEANING (The "Sanitizer") ---
+        // This forces every single field to be a valid String/Boolean
+        // Firestore creates errors if you accidentally send 'undefined'
         const cleanQuestions = state.questions.map(q => ({
-            question: q.question || '',
-            correctAnswer: q.correctAnswer || '',
-            isMultipleChoice: !!q.isMultipleChoice,
-            options: Array.isArray(q.options) ? q.options.map(o => o || '') : []
+            question: String(q.question || '').trim(), 
+            correctAnswer: String(q.correctAnswer || '').trim(),
+            isMultipleChoice: Boolean(q.isMultipleChoice),
+            options: Array.isArray(q.options) ? q.options.map(o => String(o || '').trim()) : []
         }));
 
         const data = {
-            creatorId: auth.currentUser.uid, // Use Real Firebase ID
-            creatorName: state.profile.name || 'Anonymous',
+            creatorId: user.uid,   // Use the safe 'user' variable
+            creatorName: String(state.profile.name || 'Anonymous'),
             questions: cleanQuestions, 
-            mode: state.selectedMode || 'friends', 
-            message: state.message || '',
+            mode: String(state.selectedMode || 'friends'), 
+            message: String(state.message || ''),
             timestamp: new Date().toISOString()
         };
 
-        // 2. Database Operation
+        // --- 3. DATABASE SAVE ---
         if (state.quizId) {
+            // Updating an existing quiz
             await setDoc(doc(db, "quizzes", state.quizId), data, { merge: true });
             pookieAlert("Quiz updated! 💅", "success");
         } else {
-            // Create New
+            // Creating a NEW quiz
             data.attempts = []; 
             const ref = await addDoc(collection(db, "quizzes"), data);
             state.quizId = ref.id;
         }
 
-        // 3. Success
+        // --- 4. SUCCESS ---
         state.isLoading = false; 
         Sound.play('success'); 
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         setView('share');
 
     } catch(e) { 
-        console.error("Save Error:", e); 
+        console.error("SAVE ERROR:", e); 
         state.isLoading = false; 
         render(); 
-        pookieAlert("Could not save. Try again! ☁️", "error"); 
+        
+        // This will tell you the REAL problem (e.g., "Permission Denied" or "Offline")
+        alert("Error details: " + e.message); 
     }
 };
 

@@ -1924,7 +1924,8 @@ if (state.showVibePicker) {
     render();
 
     try {
-        // 1. SANITIZE DATA (Removes any 'undefined' junk that crashes Firebase)
+        // 1. SANITIZE DATA (Critical Fix for "Network Error")
+        // Firebase rejects 'undefined', so we force everything to strings/booleans
         const cleanQuestions = state.questions.map(q => ({
             question: (q.question || '').trim(),
             correctAnswer: (q.correctAnswer || '').trim(),
@@ -1941,19 +1942,21 @@ if (state.showVibePicker) {
             timestamp: new Date().toISOString()
         };
 
-        // 2. SMART SAVE (Auto-Fixer)
+        // 2. SELF-HEALING SAVE LOGIC
         if (state.quizId) {
             try {
-                // Try to update the existing link
+                // Try to update existing link
                 await setDoc(doc(db, "quizzes", state.quizId), data, { merge: true });
                 pookieAlert("Quiz updated! 💅", "success");
             } catch (updateError) {
-                console.warn("Update failed, creating new...", updateError);
-                // IF UPDATE FAILS: Create a BRAND NEW one automatically
+                console.warn("Update failed (Zombie ID), creating new...", updateError);
+                
+                // IF UPDATE FAILS: Force create a NEW link
+                // This bypasses permission/zombie errors
                 data.attempts = []; 
                 const ref = await addDoc(collection(db, "quizzes"), data);
-                state.quizId = ref.id;
-                pookieAlert("New link created! (Old one was broken) 🔗", "success");
+                state.quizId = ref.id; // Save new ID
+                pookieAlert("New link created! (Old one was stuck) 🔗", "success");
             }
         } else {
             // No ID yet? Create new.
@@ -1965,7 +1968,12 @@ if (state.showVibePicker) {
         // 3. SUCCESS
         state.isLoading = false; 
         Sound.play('success'); 
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        
+        // Safety check for confetti
+        if (typeof confetti === 'function') {
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+        
         setView('share');
 
     } catch(e) { 
@@ -1976,8 +1984,6 @@ if (state.showVibePicker) {
         pookieAlert(`Error: ${e.message} 🥺`, "error"); 
     }
 };
-
-
 
         window.copyLink = () => {
             navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?q=${state.quizId}`).then(() => pookieAlert("Link copied! 💌", "success"));

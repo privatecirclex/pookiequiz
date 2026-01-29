@@ -246,6 +246,7 @@
             message: '',
             unsubscribe: null,
             previousView: 'create',
+            showMemoryDropdown: false,
             activeDashboardTab: null // Can be 'plays' or 'top' or null
         };
 
@@ -828,34 +829,7 @@ function getFooter() {
                                 </div>
                                 <button onclick="setView('share')" class="p-3 bg-white rounded-full shadow-sm text-rose-400 hover:scale-110 transition-transform"><i data-lucide="share-2" size="20"></i></button>
                             </header>
-                            
-
-${state.quizHistory.length > 0 ? `
-    <div class="py-2">
-        <div class="flex items-center gap-2 mb-3 ml-1 opacity-70">
-            <i data-lucide="archive" size="14" class="text-rose-400"></i>
-            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Memory Box</h3>
-        </div>
-        <div class="flex gap-3 overflow-x-auto hide-scroll pb-4">
-            ${state.quizHistory.map((env, i) => `
-                <button onclick="openEnvelope(${i})" class="flex-shrink-0 w-24 group">
-                    <div class="relative">
-                        <div class="absolute inset-x-0 -top-2 h-4 bg-rose-100 rounded-t-lg transform origin-bottom transition-transform group-hover:rotate-x-180 z-10 border-t border-rose-200"></div>
-                        <div class="h-20 bg-white border border-rose-100 shadow-sm rounded-lg flex items-center justify-center relative overflow-hidden group-hover:shadow-rose-200 group-hover:shadow-lg transition-all">
-                            <div class="absolute inset-0 bg-gradient-to-br from-white to-rose-50 opacity-50"></div>
-                            <div class="text-center relative z-20">
-                                <div class="text-xl mb-1 opacity-50 grayscale group-hover:grayscale-0 transition-all">${MODES[env.mode||'friends'].emoji}</div>
-                                <div class="text-[9px] font-black text-slate-400 uppercase">${new Date(env.timestamp).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</div>
-                            </div>
-                        </div>
-                    </div>
-                </button>
-            `).reverse().join('')}
-        </div>
-    </div>
-` : ''}
-
-                            <div class="grid grid-cols-2 gap-4 relative z-20">
+                                              <div class="grid grid-cols-2 gap-4 relative z-20">
                                 <button onclick="toggleDashboardTab('plays')" class="glass-panel p-6 rounded-[2rem] text-center transition-all ${state.activeDashboardTab === 'plays' ? 'ring-4 ring-rose-200 bg-white scale-[1.02]' : 'hover:bg-white hover:scale-[1.02]'}">
                                     <div class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-purple-500">${state.attempts.length}</div>
                                     <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 flex items-center justify-center gap-1">
@@ -913,6 +887,43 @@ ${state.quizHistory.length > 0 ? `
                                 </div>
                             ` : ''}
 
+                ${state.quizHistory.length > 0 ? `
+    <div class="mb-6 relative z-20">
+        <button onclick="toggleMemoryDropdown()" class="w-full glass-panel p-4 rounded-2xl flex items-center justify-between hover:bg-white transition-all group">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-rose-50 text-rose-400 flex items-center justify-center border border-rose-100">
+                    <i data-lucide="archive" size="18"></i>
+                </div>
+                <div class="text-left">
+                    <h3 class="font-black text-slate-700 text-sm">Memory Box</h3>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${state.quizHistory.length} Past Quizzes</p>
+                </div>
+            </div>
+            <div class="bg-rose-50 p-2 rounded-full text-rose-400 transition-transform ${state.showMemoryDropdown ? 'rotate-180' : ''}">
+                <i data-lucide="chevron-down" size="16"></i>
+            </div>
+        </button>
+
+        ${state.showMemoryDropdown ? `
+            <div class="mt-3 space-y-2 animate-enter">
+                ${state.quizHistory.map((env, i) => `
+                    <button onclick="openEnvelope(${i})" class="w-full p-3 bg-white/60 hover:bg-white rounded-xl flex items-center justify-between border border-transparent hover:border-rose-100 transition-all group">
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg opacity-80 grayscale group-hover:grayscale-0 transition-all">${MODES[env.mode||'friends'].emoji}</span>
+                            <div class="text-left">
+                                <div class="text-xs font-bold text-slate-700">Quiz #${i+1}</div>
+                                <div class="text-[9px] font-bold text-slate-400">${new Date(env.timestamp).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                        <i data-lucide="arrow-right" size="14" class="text-slate-300 group-hover:text-rose-400"></i>
+                    </button>
+                `).reverse().join('')}
+            </div>
+        ` : ''}
+    </div>
+` : ''}
+
+                
                             <div class="space-y-4 pt-4 border-t border-rose-100/50">
                                 <h3 class="font-black text-slate-700 text-sm ml-2 flex items-center gap-2"><i data-lucide="list" size="16" class="text-rose-300"></i> All Results</h3>
                                 ${sortedByScore.length === 0 ? `
@@ -1522,44 +1533,65 @@ if (state.viewingEnvelopeAttempt) {
         window.cancelDashboard = () => { state.showDashboardConfirm = false; render(); };
         
                 window.confirmDashboard = () => {
-            state.showDashboardConfirm = false;
-            if (!state.quizId) { pookieAlert("No active quiz found! 🫧", "error"); return; }
-            
-            // 1. Capture where we are coming from (create or share)
-            const originView = state.view;
+    state.showDashboardConfirm = false;
+                    
+    
+    // --- FIX START: Allow entry if we have history OR an active quiz ---
+    const hasHistory = state.quizHistory && state.quizHistory.length > 0;
+    const hasActiveQuiz = !!state.quizId;
 
-            state.isLoading = true; state.loadingText = "Spilling tea... ☕️"; render();
-            
-            if (state.unsubscribe) {
-                state.unsubscribe();
-                state.unsubscribe = null;
-            }
-            
-            try {
-                state.unsubscribe = onSnapshot(doc(db, "quizzes", state.quizId), (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        state.attempts = data.attempts || [];
-                        if(data.questions) state.questions = data.questions; // <--- NEW: Save questions
-                        state.isLoading = false;
-                        
-                        // 2. Save it to state before switching views
-                        state.dashboardOrigin = originView;
-
-                        
-                        setView('dashboard');
-                    }
-                }, (error) => {
+    if (!hasActiveQuiz && !hasHistory) { 
+        pookieAlert("No active quiz or memories found! 🫧", "error"); 
+        return; 
+    }
+    // ------------------------------------------------------------------
+    
+    // Capture where we came from
+    const originView = state.view;
+    state.isLoading = true; 
+    state.loadingText = "Spilling tea... ☕️"; 
+    render();
+    
+    // Clear previous listener if exists
+    if (state.unsubscribe) {
+        state.unsubscribe();
+        state.unsubscribe = null;
+    }
+    
+    // If we have an active quiz, fetch its live data
+    if (hasActiveQuiz) {
+        try {
+            state.unsubscribe = onSnapshot(doc(db, "quizzes", state.quizId), (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    state.attempts = data.attempts || [];
+                    if(data.questions) state.questions = data.questions;
+                    
                     state.isLoading = false;
-                    console.error(error);
-                    pookieAlert("Could not load results", "error");
-                });
-            } catch(e) {
+                    state.dashboardOrigin = originView;
+                    setView('dashboard');
+                }
+            }, (error) => {
                 state.isLoading = false;
-                pookieAlert("Setup error", "error");
-            }
-        };
+                console.error(error);
+                pookieAlert("Could not load results", "error");
+            });
+        } catch(e) {
+            state.isLoading = false;
+            pookieAlert("Setup error", "error");
+        }
+    } else {
+        // If no active quiz (but we have history), just go to dashboard
+        // The dashboard will show the Envelopes and "0 Plays" for active
+        state.attempts = []; // Clear active attempts
+        state.isLoading = false;
+        state.dashboardOrigin = originView;
+        setView('dashboard');
+    }
+};
 
+
+window.toggleMemoryDropdown = () => { state.showMemoryDropdown = !state.showMemoryDropdown; Sound.play('pop'); render(); };
 
 
         // --- RESPONDER LOGIC ---

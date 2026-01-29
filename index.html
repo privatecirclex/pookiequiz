@@ -1798,17 +1798,32 @@ window.openShareCard = () => {
         const qrContainer = document.getElementById('share-qr');
         if (qrContainer) {
             qrContainer.innerHTML = ''; // Clear previous
+            
+            // FIX: Using Black color and Larger size (128x128) for better scanning
             new QRCode(qrContainer, {
                 text: `${window.location.origin}${window.location.pathname}?q=${state.quizId}`,
-                width: 60,
-                height: 60,
-                colorDark : "#e11d48", // Rose-600
+                width: 128,  // <--- Changed from 60 to 128 for sharpness
+                height: 128, // <--- Changed from 60 to 128
+                colorDark : "#000000", // <--- Changed to Black (High Contrast)
                 colorLight : "#ffffff",
                 correctLevel : QRCode.CorrectLevel.H
             });
+            
+            // Optional: Scale down visually via CSS so it fits nicely, but the raw image is high-res
+            const qrCanvas = qrContainer.querySelector('canvas');
+            if(qrCanvas) {
+                qrCanvas.style.width = '60px'; // Visually small
+                qrCanvas.style.height = '60px';
+            }
+            const qrImg = qrContainer.querySelector('img');
+            if(qrImg) {
+                qrImg.style.width = '60px';
+                qrImg.style.height = '60px';
+            }
         }
     }, 100);
 };
+
 
 window.closeShareCard = () => { state.showShareCard = false; render(); };
 

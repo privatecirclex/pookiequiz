@@ -2394,15 +2394,6 @@ window.updateQuizConfig = (key, value) => {
     state.showDashboardConfirm = false;
                     
     
-    // --- FIX START: Allow entry if we have history OR an active quiz ---
-    const hasHistory = state.quizHistory && state.quizHistory.length > 0;
-    const hasActiveQuiz = !!state.quizId;
-
-    if (!hasActiveQuiz && !hasHistory) { 
-        pookieAlert("No active quiz or memories found! 🫧", "error"); 
-        return; 
-    }
-    // ------------------------------------------------------------------
     
     // Capture where we came from
     const originView = state.view;

@@ -2489,7 +2489,7 @@ window.updateQuizConfig = (key, value) => {
                             const data = docSnap.data();
                             state.attempts = data.attempts || [];
                             
-                            if(state.quizId && displayId === state.quizId && data.questions) {
+                            if (data.questions) {
                                 state.questions = data.questions;
                             }
                             

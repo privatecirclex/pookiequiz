@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -254,7 +255,12 @@
             showMemoryDropdown: false,
             skipAnim: false,
             showShareCard: false,
-            activeDashboardTab: null,            // Can be 'plays' or 'top' or null
+            lieDetector: false,        //toggle
+            currentQuestionIndex: 0,   // Which question is the friend seeing?
+            questionStartTime: 0,      // When did this specific question appear?
+            panicInterval: null,       // The timer ID for the "Panic" messages
+            hasPanicked: false,        // Did we already show a panic message for this Q?
+            activeDashboardTab: null,            
             showVibePicker: false
         };
 
@@ -711,8 +717,28 @@ function getFooter() {
                                 `).join('')}
                             </div>
 
-                            <div class="flex-1 space-y-5">
+                                                        <div class="flex-1 space-y-5">
+                                
+                                ${state.questions.length > 0 ? `
+                                <div class="glass-panel p-4 rounded-2xl flex items-center justify-between mb-6 mx-4 border-2 ${state.lieDetector ? 'border-rose-400 bg-rose-50' : 'border-transparent'} transition-all animate-enter">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full ${state.lieDetector ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-400'} flex items-center justify-center transition-colors">
+                                            <i data-lucide="siren" size="20"></i>
+                                        </div>
+                                        <div class="text-left">
+                                            <h3 class="font-black text-slate-800 text-sm">Panic Mode 🚨</h3>
+                                            <p class="text-[10px] font-bold text-slate-400">One-by-one Qs with "Sus" alerts</p>
+                                        </div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" onchange="toggleLieDetector()" ${state.lieDetector ? 'checked' : ''} class="sr-only peer">
+                                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                                    </label>
+                                </div>
+                                ` : ''}
+
                                 <div class="text-center px-4">
+
                                     <h2 class="text-2xl font-black text-slate-800">Spill the Tea ☕️</h2>
                                     <p class="text-slate-500 text-xs font-bold">What should your ${MODES[state.selectedMode].label} know?</p>
                                 </div>
@@ -858,90 +884,77 @@ function getFooter() {
                     </div>`;
                     break;
 
-                case 'attempt':
-                                    if (state.attemptResult) {
-                    const score = state.attemptResult.score;
-                    const total = state.attemptResult.total;
-                    const percent = (score/total)*100;
-                    const reaction = percent === 100 ? "Soulmates! 💍" : percent > 50 ? "Bestie Vibes ✨" : "Fake Friend? 💀";
-                    
-                    // --- NEW LOGIC: Generate the Review List ---
-                    const reviewHtml = state.activeQuiz.questions.map((q, i) => {
-                        // Compare answers (same logic as scoring)
-                        const userAns = state.friendAnswers[i] || "Skipped";
-                        const isCorrect = userAns.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim();
+                               case 'attempt':
+                    if (state.attemptResult) {
+                        // --- RESULT SCREEN (Unchanged) ---
+                        const score = state.attemptResult.score;
+                        const total = state.attemptResult.total;
+                        const percent = (score/total)*100;
+                        const reaction = percent === 100 ? "Soulmates! 💍" : percent > 50 ? "Bestie Vibes ✨" : "Fake Friend? 💀";
                         
-                        return `
-                        <div class="glass-panel p-4 rounded-2xl mb-3 border-l-4 ${isCorrect ? 'border-emerald-400 bg-emerald-50/40' : 'border-rose-400 bg-rose-50/40'}">
-                            <div class="flex justify-between items-start mb-2">
-                                <p class="font-bold text-slate-700 text-sm pr-2 leading-tight">${q.question}</p>
-                                ${isCorrect ? 
-                                    '<div class="bg-emerald-100 text-emerald-600 p-1 rounded-full"><i data-lucide="check" size="14"></i></div>' : 
-                                    '<div class="bg-rose-100 text-rose-500 p-1 rounded-full"><i data-lucide="x" size="14"></i></div>'
-                                }
-                            </div>
+                                               const reviewHtml = state.activeQuiz.questions.map((q, i) => {
+                            const userAns = state.friendAnswers[i] || "Skipped";
+                            const isCorrect = userAns.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim();
                             
-                            <div class="space-y-1 bg-white/50 p-2 rounded-lg">
-                                <div class="text-xs font-bold text-slate-500 flex items-center justify-between">
-                                    <span>You said:</span>
-                                    <span class="${isCorrect ? 'text-emerald-600' : 'text-rose-500 line-through'}">${userAns}</span>
-                                </div>
-                                ${!isCorrect ? `
-                                    <div class="text-xs font-black text-emerald-600 flex items-center justify-between border-t border-slate-100 pt-1 mt-1">
-                                        <span>Correct:</span>
-                                        <span>${q.correctAnswer}</span>
+                            // --- NEW BADGE LOGIC ---
+                            let badge = '';
+                            // Check if timers exist (backward compatibility)
+                            if(state.attemptResult.timers && state.attemptResult.timers[i]) {
+                                const t = state.attemptResult.timers[i];
+                                if(t > 8) badge = `<span class="ml-2 bg-red-100 text-red-500 text-[10px] font-black px-2 py-0.5 rounded-full border border-red-200">🐢 ${Math.round(t)}s SUS!</span>`;
+                                else if(t < 1.5) badge = `<span class="ml-2 bg-purple-100 text-purple-500 text-[10px] font-black px-2 py-0.5 rounded-full border border-purple-200">⚡ INSTANT</span>`;
+                            }
+                            // -----------------------
+
+                            return `
+                            <div class="glass-panel p-4 rounded-2xl mb-3 border-l-4 ${isCorrect ? 'border-emerald-400 bg-emerald-50/40' : 'border-rose-400 bg-rose-50/40'}">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="pr-2">
+                                        <p class="font-bold text-slate-700 text-sm leading-tight">${q.question}</p>
                                     </div>
-                                ` : ''}
+                                    ${isCorrect ? '<div class="bg-emerald-100 text-emerald-600 p-1 rounded-full"><i data-lucide="check" size="14"></i></div>' : '<div class="bg-rose-100 text-rose-500 p-1 rounded-full"><i data-lucide="x" size="14"></i></div>'}
+                                </div>
+                                <div class="space-y-1 bg-white/50 p-2 rounded-lg">
+                                    <div class="text-xs font-bold text-slate-500 flex items-center justify-between flex-wrap gap-2">
+                                        <div class="flex items-center">
+                                            <span>You said:</span> <span class="${isCorrect ? 'text-emerald-600' : 'text-rose-500 line-through'} ml-1">${userAns}</span>
+                                        </div>
+                                        ${badge} </div>
+                                    ${!isCorrect ? `<div class="text-xs font-black text-emerald-600 flex items-center justify-between border-t border-slate-100 pt-1 mt-1"><span>Correct:</span><span>${q.correctAnswer}</span></div>` : ''}
+                                </div>
+                            </div>`;
+                        }).join('');
+
+
+                        html = `
+                        <div class="no-scroll items-center justify-center p-6 text-center">
+                            <div class="w-full max-w-sm space-y-6 animate-enter relative z-10 pb-10">
+                                <div class="glass-panel p-8 rounded-[3rem] shadow-2xl border-2 border-white relative mt-8">
+                                    <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg whitespace-nowrap">The Tea 🍵</div>
+                                    <h1 class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-rose-500 to-purple-600 mb-2">${score}/${total}</h1>
+                                    <h2 class="text-xl font-black text-slate-800 mb-2">${reaction}</h2>
+                                    <p class="text-slate-500 font-bold text-xs">Results for ${state.friendName}</p>
+                                </div>
+                                <div class="text-left space-y-4">
+                                    <h3 class="font-black text-slate-400 text-xs uppercase tracking-widest ml-4 flex items-center gap-2">Receipts 🧾 <span class="text-[10px] opacity-50">(Only you see this)</span></h3>
+                                    <div class="space-y-3 pb-4">${reviewHtml}</div>
+                                </div>
+                                <button onclick="resetAttempt()" class="w-full py-4 bg-white text-rose-400 rounded-full font-bold text-lg shadow-sm border-2 border-rose-100 mb-3 hover:bg-rose-50 transition-colors">Next Person Plays 🔄</button>
+                                <button onclick="handleStartOwnQuiz()" class="w-full py-4 btn-primary rounded-full font-bold text-lg shadow-xl sticky bottom-6">Create My Own 🍭</button>
                             </div>
+                            ${soundBtn}
                         </div>`;
-                    }).join('');
 
-                    html = `
-                    <div class="no-scroll items-center justify-center p-6 text-center">
-                        <div class="w-full max-w-sm space-y-6 animate-enter relative z-10 pb-10">
-                            
-                            <div class="glass-panel p-8 rounded-[3rem] shadow-2xl border-2 border-white relative mt-8">
-                                <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-lg whitespace-nowrap">
-                                    The Tea 🍵
-                                </div>
-                                
-                                <h1 class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-rose-500 to-purple-600 mb-2">${score}/${total}</h1>
-                                <h2 class="text-xl font-black text-slate-800 mb-2">${reaction}</h2>
-                                <p class="text-slate-500 font-bold text-xs">Results for ${state.friendName}</p>
-                            </div>
-
-                            <div class="text-left space-y-4">
-                                <h3 class="font-black text-slate-400 text-xs uppercase tracking-widest ml-4 flex items-center gap-2">
-                                    Receipts 🧾 <span class="text-[10px] opacity-50">(Only you can see this)</span>
-                                </h3>
-                                <div class="space-y-3 pb-4">
-                                    ${reviewHtml}
-                                </div>
-                            </div>
-                    <button onclick="resetAttempt()" class="w-full py-4 bg-white text-rose-400 rounded-full font-bold text-lg shadow-sm border-2 border-rose-100 mb-3 hover:bg-rose-50 transition-colors">
-    Next Person Plays 🔄
-</button>
-
-                            <button onclick="handleStartOwnQuiz()" class="w-full py-4 btn-primary rounded-full font-bold text-lg shadow-xl sticky bottom-6">
-                                Create My Own 🍭
-                            </button>
-                        </div>
-                        ${soundBtn}
-                    </div>`;
-                } 
- else if (!state.friendName) {
+                    } else if (!state.friendName) {
+                        // --- ENTER NAME SCREEN (Unchanged) ---
                         html = `
                         <div class="no-scroll items-center justify-center p-6">
                             <div class="w-full max-w-md animate-enter space-y-8 text-center">
-                                <div class="inline-block p-6 glass-panel rounded-full mb-4 shadow-lg animate-float-slow">
-                                    <i data-lucide="heart" class="text-rose-400" fill="currentColor" size="48"></i>
-                                </div>
-                                
+                                <div class="inline-block p-6 glass-panel rounded-full mb-4 shadow-lg animate-float-slow"><i data-lucide="heart" class="text-rose-400" fill="currentColor" size="48"></i></div>
                                 <div class="space-y-2">
                                     <h1 class="text-3xl font-black text-slate-800">Do you know<br/><span class="text-rose-500">${state.activeQuiz.creatorName}</span>?</h1>
                                     ${state.activeQuiz.message ? `<div class="bg-white/50 inline-block px-4 py-2 rounded-xl text-slate-500 text-sm font-bold italic border border-white">"${state.activeQuiz.message}"</div>` : ''}
                                 </div>
-
                                 <div class="glass-panel p-2 rounded-[2rem] shadow-xl flex items-center">
                                     <input type="text" id="friendNameInput" placeholder="Enter your name... 💕" class="w-full p-4 bg-transparent text-center font-bold text-xl text-slate-800 outline-none placeholder:text-slate-300">
                                 </div>
@@ -950,45 +963,90 @@ function getFooter() {
                             ${soundBtn}
                         </div>`;
                     } else {
-                        html = `
-                        <div class="no-scroll p-6">
-                            <div class="w-full max-w-md mx-auto space-y-6 pb-32">
-                                <div class="flex items-center justify-between pb-4 border-b border-rose-200/50">
-                                    <div class="text-[10px] font-black text-rose-400 uppercase tracking-widest bg-white/50 px-3 py-1 rounded-full">Quiz by ${state.activeQuiz.creatorName}</div>
-                                    <div class="text-[10px] font-black text-slate-500 bg-white/50 px-3 py-1 rounded-full">Player: ${state.friendName}</div>
+                        // --- PLAYING THE QUIZ ---
+                        
+                        // NEW LOGIC: CHECK FOR PANIC MODE
+                        if (state.activeQuiz.lieDetector) {
+                            // === MODE A: PANIC (One by One) ===
+                            const q = state.activeQuiz.questions[state.currentQuestionIndex];
+                            const currentNum = state.currentQuestionIndex + 1;
+                            const totalNum = state.activeQuiz.questions.length;
+                            
+                            // Start timer if not running
+                            if (!state.panicInterval) startPanicTimer();
+
+                            html = `
+                            <div class="min-h-screen flex flex-col p-6 relative">
+                                <div class="flex items-center justify-between mb-8 animate-enter">
+                                    <button onclick="handleExitQuiz()" class="px-4 py-2 bg-white/50 text-slate-500 rounded-full text-xs font-black hover:bg-rose-100 hover:text-rose-500 transition-colors border border-white">EXIT ⚠️</button>
+                                    <div class="px-4 py-2 bg-slate-800 text-white rounded-full text-xs font-black tracking-widest shadow-lg">${currentNum} / ${totalNum}</div>
                                 </div>
-                                
-                                <div class="space-y-8">
-                                    ${state.activeQuiz.questions.map((q, idx) => `
-                                        <div class="space-y-4">
-                                            <div class="flex items-start gap-3">
-                                                <span class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-black text-xs shadow-lg">${idx + 1}</span>
-                                                <h3 class="text-xl font-black text-slate-800 leading-snug">${q.question}</h3>
-                                            </div>
-                                            
-                                            <div class="pl-11 space-y-3">
-                                                ${q.isMultipleChoice ? q.options.filter(o=>o).map(opt => `
-                                                    <button onclick="handleOptionSelect(${idx}, '${opt}')" 
-                                                        class="w-full p-4 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group ${state.friendAnswers[idx] === opt ? 'bg-rose-500 border-rose-500 text-white shadow-lg scale-[1.02]' : 'bg-white/60 border-transparent text-slate-600 hover:bg-white hover:scale-[1.01]'}">
-                                                        <span>${opt}</span>
-                                                        ${state.friendAnswers[idx] === opt ? '<i data-lucide="check" size="16"></i>' : '<div class="w-4 h-4 rounded-full border-2 border-slate-200 group-hover:border-rose-300"></div>'}
-                                                    </button>
-                                                `).join('') : `
-                                                    <input type="text" onchange="updateFriendAnswer(${idx}, this.value)" placeholder="Type answer..." class="w-full p-4 bg-white/60 border-2 border-transparent focus:border-rose-300 focus:bg-white rounded-2xl text-slate-800 font-bold outline-none transition-all shadow-sm">
-                                                `}
-                                            </div>
+
+                                <div class="flex-1 flex flex-col justify-center pb-20 animate-enter">
+                                    <div class="glass-panel p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden border-2 border-white">
+                                        <div class="absolute top-0 left-0 h-1 bg-rose-500 transition-all duration-500" style="width: ${(currentNum/totalNum)*100}%"></div>
+                                        <h3 class="text-2xl font-black text-slate-800 mb-8 leading-tight">${q.question}</h3>
+                                        <div class="space-y-3">
+                                             ${q.isMultipleChoice ? q.options.filter(o=>o).map(opt => `
+                                                <button onclick="handleOptionSelect(${state.currentQuestionIndex}, '${opt}')" 
+                                                    class="w-full p-4 rounded-xl text-left font-bold transition-all border-2 flex items-center justify-between group ${state.friendAnswers[state.currentQuestionIndex] === opt ? 'bg-rose-500 border-rose-500 text-white shadow-lg' : 'bg-white/50 border-white text-slate-600 hover:bg-white hover:scale-[1.02]'}">
+                                                    <span>${opt}</span>
+                                                </button>
+                                            `).join('') : `
+                                                <input type="text" value="${state.friendAnswers[state.currentQuestionIndex] || ''}" oninput="updateFriendAnswer(${state.currentQuestionIndex}, this.value)" placeholder="Type answer here..." class="w-full p-5 bg-white border-2 border-rose-100 focus:border-rose-400 rounded-2xl text-lg font-bold outline-none text-slate-800 placeholder:text-slate-300 shadow-inner">
+                                            `}
                                         </div>
-                                    `).join('')}
+                                    </div>
                                 </div>
-                                
-                                <div class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-rose-50 via-rose-50/90 to-transparent flex justify-center z-20">
-                                    <button onclick="handleSubmitAttempt()" class="w-full max-w-md py-4 btn-primary rounded-full font-bold text-xl shadow-xl">Submit! 🍬</button>
+
+                                <div class="fixed bottom-8 left-0 right-0 px-6 z-20">
+                                    <button onclick="handleNextQuestion()" class="w-full py-5 btn-primary rounded-full font-black text-xl shadow-2xl flex items-center justify-center gap-2 transform active:scale-95 transition-all">
+                                        ${currentNum === totalNum ? 'FINISH & SUBMIT ✨' : 'NEXT QUESTION ➜'}
+                                    </button>
                                 </div>
-                            </div>
-                            ${soundBtn}
-                        </div>`;
+                                ${soundBtn}
+                            </div>`;
+
+                        } else {
+                            // === MODE B: CHILL (List View) ===
+                            html = `
+                            <div class="no-scroll p-6">
+                                <div class="w-full max-w-md mx-auto space-y-6 pb-32">
+                                    <div class="flex items-center justify-between pb-4 border-b border-rose-200/50">
+                                        <div class="text-[10px] font-black text-rose-400 uppercase tracking-widest bg-white/50 px-3 py-1 rounded-full">Quiz by ${state.activeQuiz.creatorName}</div>
+                                        <div class="text-[10px] font-black text-slate-500 bg-white/50 px-3 py-1 rounded-full">Player: ${state.friendName}</div>
+                                    </div>
+                                    <div class="space-y-8">
+                                        ${state.activeQuiz.questions.map((q, idx) => `
+                                            <div class="space-y-4">
+                                                <div class="flex items-start gap-3">
+                                                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-black text-xs shadow-lg">${idx + 1}</span>
+                                                    <h3 class="text-xl font-black text-slate-800 leading-snug">${q.question}</h3>
+                                                </div>
+                                                <div class="pl-11 space-y-3">
+                                                    ${q.isMultipleChoice ? q.options.filter(o=>o).map(opt => `
+                                                        <button onclick="handleOptionSelect(${idx}, '${opt}')" 
+                                                            class="w-full p-4 rounded-2xl text-left font-bold transition-all border-2 flex items-center justify-between group ${state.friendAnswers[idx] === opt ? 'bg-rose-500 border-rose-500 text-white shadow-lg scale-[1.02]' : 'bg-white/60 border-transparent text-slate-600 hover:bg-white hover:scale-[1.01]'}">
+                                                            <span>${opt}</span>
+                                                            ${state.friendAnswers[idx] === opt ? '<i data-lucide="check" size="16"></i>' : '<div class="w-4 h-4 rounded-full border-2 border-slate-200 group-hover:border-rose-300"></div>'}
+                                                        </button>
+                                                    `).join('') : `
+                                                        <input type="text" onchange="updateFriendAnswer(${idx}, this.value)" placeholder="Type answer..." class="w-full p-4 bg-white/60 border-2 border-transparent focus:border-rose-300 focus:bg-white rounded-2xl text-slate-800 font-bold outline-none transition-all shadow-sm">
+                                                    `}
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    <div class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-rose-50 via-rose-50/90 to-transparent flex justify-center z-20">
+                                        <button onclick="handleSubmitAttempt()" class="w-full max-w-md py-4 btn-primary rounded-full font-bold text-xl shadow-xl">Submit! 🍬</button>
+                                    </div>
+                                </div>
+                                ${soundBtn}
+                            </div>`;
+                        }
                     }
                     break;
+
 
                                 case 'dashboard':
                     // Prepare data helpers
@@ -1299,23 +1357,38 @@ function getFooter() {
 
         function renderModals(root) {
             // --- NEW: Attempt Detail Popup ---
-            if (state.viewingAttempt) {
+                 if (state.viewingAttempt) {
                 const attempt = state.viewingAttempt;
+                
                 // Generate the list of answers
                 const reviewList = state.questions.map((q, i) => {
                     const userAns = attempt.answers[i] || "Skipped";
                     const isCorrect = userAns.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim();
+                    
+                    // --- BADGE LOGIC FOR DASHBOARD ---
+                    let badge = '';
+                    if(attempt.timers && attempt.timers[i]) {
+                        const t = attempt.timers[i];
+                        if(t > 8) badge = `<span class="ml-2 bg-red-100 text-red-500 text-[10px] font-black px-2 py-0.5 rounded-full border border-red-200">🐢 ${Math.round(t)}s SUS!</span>`;
+                        else if(t < 1.5) badge = `<span class="ml-2 bg-purple-100 text-purple-500 text-[10px] font-black px-2 py-0.5 rounded-full border border-purple-200">⚡ INSTANT</span>`;
+                    }
+                    // ---------------------------------
+
                     return `
                     <div class="glass-panel p-4 rounded-2xl mb-3 border-l-4 ${isCorrect ? 'border-emerald-400 bg-emerald-50/50' : 'border-rose-400 bg-rose-50/50'}">
                         <div class="flex justify-between items-start mb-2">
-                            <p class="font-bold text-slate-700 text-sm pr-2 leading-tight">${q.question}</p>
+                            <div class="pr-2">
+                                <p class="font-bold text-slate-700 text-sm leading-tight">${q.question}</p>
+                            </div>
                             ${isCorrect ? '<div class="bg-emerald-100 text-emerald-600 p-1 rounded-full"><i data-lucide="check" size="14"></i></div>' : '<div class="bg-rose-100 text-rose-500 p-1 rounded-full"><i data-lucide="x" size="14"></i></div>'}
                         </div>
                         <div class="space-y-1 bg-white/60 p-2 rounded-lg">
-                            <div class="text-xs font-bold text-slate-500 flex items-center justify-between">
-                                <span>They said:</span>
-                                <span class="${isCorrect ? 'text-emerald-600' : 'text-rose-500 line-through'}">${userAns}</span>
-                            </div>
+                            <div class="text-xs font-bold text-slate-500 flex items-center justify-between flex-wrap gap-2">
+                                <div class="flex items-center">
+                                    <span>They said:</span>
+                                    <span class="${isCorrect ? 'text-emerald-600' : 'text-rose-500 line-through'} ml-1">${userAns}</span>
+                                </div>
+                                ${badge} </div>
                             ${!isCorrect ? `<div class="text-xs font-black text-emerald-600 flex items-center justify-between border-t border-slate-200/50 pt-1 mt-1"><span>Correct:</span><span>${q.correctAnswer}</span></div>` : ''}
                         </div>
                     </div>`;
@@ -1334,13 +1407,12 @@ function getFooter() {
                         </div>
                         <div class="space-y-2">${reviewList}</div>
                         <div class="mt-8 mb-4 space-y-3">
-    <button onclick="shareFromDashboard()" class="w-full py-4 bg-gradient-to-r from-rose-400 to-purple-500 text-white rounded-full font-black text-lg shadow-xl flex items-center justify-center gap-2 transform transition active:scale-95 group">
-        <i data-lucide="instagram" size="20" class="group-hover:scale-110 transition-transform"></i> 
-        <span>Share Result 📸</span>
-    </button>
-    <button onclick="closeAttemptDetail()" class="w-full py-4 bg-slate-100 text-slate-500 rounded-full font-bold hover:bg-slate-200 transition-colors">Close</button>
-</div>
-
+                            <button onclick="shareFromDashboard()" class="w-full py-4 bg-gradient-to-r from-rose-400 to-purple-500 text-white rounded-full font-black text-lg shadow-xl flex items-center justify-center gap-2 transform transition active:scale-95 group">
+                                <i data-lucide="instagram" size="20" class="group-hover:scale-110 transition-transform"></i> 
+                                <span>Share Result 📸</span>
+                            </button>
+                            <button onclick="closeAttemptDetail()" class="w-full py-4 bg-slate-100 text-slate-500 rounded-full font-bold hover:bg-slate-200 transition-colors">Close</button>
+                        </div>
                     </div>`;
                 root.appendChild(modal);
             }
@@ -1589,15 +1661,23 @@ if (state.showVibePicker) {
             setView(v);
         };
 
-        window.setView = (v) => {
-    if (state.view === 'dashboard' && v !== 'dashboard' && state.unsubscribe) {
-        state.unsubscribe();
-        state.unsubscribe = null;
-    }
+                window.setView = (v) => {
+            // 1. Clear Panic Timer if leaving the quiz
+            if (state.panicInterval) {
+                clearInterval(state.panicInterval);
+                state.panicInterval = null;
+            }
 
-    state.view = v; 
-    render(); 
-};
+            // 2. Clear Database Listener (Existing logic)
+            if (state.view === 'dashboard' && v !== 'dashboard' && state.unsubscribe) {
+                state.unsubscribe();
+                state.unsubscribe = null;
+            }
+
+            state.view = v; 
+            render(); 
+        };
+
 
         window.toggleSound = () => { if(Sound.toggle()) Sound.play('pop'); render(); };
         window.pookieAlert = (msg, type='default') => {
@@ -1613,6 +1693,66 @@ if (state.showVibePicker) {
             lucide.createIcons();
             setTimeout(() => { t.style.opacity = '0'; setTimeout(()=>t.remove(), 300); }, 2500);
         };
+            // --- NEW: PANIC MODE LOGIC ---
+        window.toggleLieDetector = () => {
+            state.lieDetector = !state.lieDetector;
+            saveState();
+            render();
+        };
+
+        window.startPanicTimer = () => {
+            if (state.panicInterval) clearInterval(state.panicInterval);
+            state.questionStartTime = Date.now();
+            state.hasPanicked = false;
+
+            state.panicInterval = setInterval(() => {
+                const elapsed = (Date.now() - state.questionStartTime) / 1000;
+                // If they take longer than 8 seconds... PANIC!
+                if (elapsed > 8 && !state.hasPanicked) {
+                    const msgs = ["Brain freeze? 🥶", "Why the hesitation? 🤨", "Sweating? 💦", "Calculating the lie... 🧮"];
+                    pookieAlert(msgs[Math.floor(Math.random() * msgs.length)], "error");
+                    state.hasPanicked = true; 
+                    Sound.play('error');
+                }
+            }, 1000);
+        };
+
+                window.handleNextQuestion = () => {
+            const idx = state.currentQuestionIndex;
+            
+            // 1. Check if answered
+            if (!state.friendAnswers[idx]) {
+                pookieAlert("Answer first bestie! 😤", "error");
+                return;
+            }
+
+            // --- NEW: CALCULATE & SAVE TIME ---
+            const elapsed = (Date.now() - state.questionStartTime) / 1000;
+            state.attemptTimers[idx] = elapsed; // Save the time!
+
+            // 2. Check for "Instantly Sus" behavior (< 1.5s)
+            if (elapsed < 1.5) {
+                 pookieAlert("Stalker speed! ⚡", "success");
+            }
+
+            // 3. Move to next or Submit
+            if (idx < state.activeQuiz.questions.length - 1) {
+                state.currentQuestionIndex++;
+                Sound.play('pop');
+                render(); 
+                startPanicTimer(); 
+            } else {
+                handleSubmitAttempt();
+            }
+        };
+
+
+        window.handleExitQuiz = () => {
+            if(confirm("Exit? You'll lose your progress! 🥺")) {
+                setView('landing');
+            }
+        };
+
 
         // --- LOGIC ---
         window.handleLogin = () => {
@@ -1969,6 +2109,7 @@ if (state.showVibePicker) {
             creatorName: String(state.profile.name || 'Anonymous'),
             questions: cleanQuestions, 
             mode: String(state.selectedMode || 'friends'), 
+            lieDetector: state.lieDetector,
             message: String(state.message || ''),
             timestamp: new Date().toISOString()
         };
@@ -2132,6 +2273,7 @@ window.toggleMemoryDropdown = () => {
             if(!el || !el.value.trim()) { pookieAlert("Name pls! 🥺", "error"); return; }
             state.friendName = el.value.trim();
             state.friendAnswers = new Array(state.activeQuiz.questions.length).fill('');
+            state.attemptTimers = [];
             Sound.play('pop'); render();
         };
 
@@ -2170,7 +2312,8 @@ window.toggleMemoryDropdown = () => {
         friendName: state.friendName,
         score: score, total: total,
         timestamp: new Date().toISOString(),
-        answers: state.friendAnswers
+        answers: state.friendAnswers,
+        timers: state.attemptTimers || []
     };
 
     try {
@@ -2338,6 +2481,7 @@ window.shareFromDashboard = () => {
             state.viewingAttempt = null;
             render();
         };
+    
 
     window.openVibePicker = () => { state.showVibePicker = true; render(); };
 window.closeVibePicker = () => { state.showVibePicker = false; render(); };

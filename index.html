@@ -2770,12 +2770,22 @@ window.closeVibePicker = () => { state.showVibePicker = false; render(); };
                 }
             } else {
                 // FIX: Don't kick user out of Share or Dashboard on refresh
-if (state.profileCompleted && !['create', 'share', 'dashboard'].includes(state.view)) {
-    state.view = 'create';
-}
+            } else {
+                // FIX: Intelligent Redirect on Reload
+                if (state.profileCompleted) {
+                    // 1. If we have a finished quiz (ID exists), default to SHARE to hide old questions
+                    if (state.quizId && !['create', 'share', 'dashboard'].includes(state.view)) {
+                        state.view = 'share';
+                    }
+                    // 2. Otherwise, default to CREATE (for drafts)
+                    else if (!['create', 'share', 'dashboard'].includes(state.view)) {
+                        state.view = 'create';
+                    }
+                }
 
                 render();
             }
+
             
             // Interaction listener for AudioContext
            //  both click and touchstart to ensure mobile users hear the pop!

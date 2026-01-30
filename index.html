@@ -742,6 +742,7 @@ function getFooter() {
                                     <h2 class="text-2xl font-black text-slate-800">Spill the Tea ☕️</h2>
                                     <p class="text-slate-500 text-xs font-bold">What should your ${MODES[state.selectedMode].label} know?</p>
                                 </div>
+                                                
                                 
                                 <div id="questionsList" class="space-y-4">
                                     ${state.questions.length === 0 ? `
@@ -837,9 +838,36 @@ function getFooter() {
                                 `).join('')}
                             </div>
                             
-                            <div class="glass-panel p-5 rounded-[1.5rem]">
-                                <label class="block text-slate-400 font-black text-xs uppercase mb-3 ml-1">Message for them 💌</label>
-                                <textarea oninput="state.message = this.value" class="w-full p-4 rounded-xl border-none font-bold text-slate-700 text-sm bg-white/60 focus:bg-white focus:ring-2 ring-rose-200 outline-none transition-all placeholder:text-slate-300" rows="3" placeholder="e.g. Good luck pookie! Don't embarrass me. 💅">${state.message || ''}</textarea>
+                                            <div class="glass-panel p-5 rounded-[1.5rem] mb-3">
+                                <label class="flex items-center gap-2 text-slate-400 font-black text-xs uppercase mb-2 ml-1">
+                                    <i data-lucide="message-circle-heart" size="14"></i>
+                                    Intro Message (Public)
+                                </label>
+                                <input type="text" 
+                                    oninput="state.message = this.value; saveState();" 
+                                    class="w-full bg-white/60 p-3 rounded-xl font-bold text-slate-700 outline-none text-sm placeholder:text-slate-300 focus:bg-white transition-all border border-transparent focus:border-rose-200"
+                                    placeholder="e.g. Good luck pookie! Don't embarrass me. 💅"
+                                    value="${state.message || ''}">
+                            </div>
+
+                
+                            <div class="glass-panel p-5 rounded-[1.5rem] border-2 border-dashed border-purple-200 bg-purple-50/50">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="bg-purple-100 text-purple-500 p-1.5 rounded-lg"><i data-lucide="lock" size="16"></i></div>
+                                        <div>
+                                            <h3 class="font-black text-slate-700 text-sm uppercase tracking-wide">Locked Tea 🔒</h3>
+                                            <p class="text-[10px] font-bold text-purple-400">Unlock at: <span id="lock-display-final">${Math.min(state.secretCount || state.questions.length, state.questions.length)}</span>/${state.questions.length} correct</p>
+                                        </div>
+                                    </div>
+                                    <input type="range" min="1" max="${Math.max(1, state.questions.length)}" step="1" 
+                                        value="${Math.min(state.secretCount || state.questions.length, state.questions.length)}" 
+                                        oninput="document.getElementById('lock-display-final').innerText = this.value; state.secretCount = Number(this.value); saveState();"
+                                        class="w-24 accent-purple-500 cursor-pointer">
+                                </div>
+                                <textarea oninput="state.secretMessage = this.value; saveState();" 
+                                    class="w-full p-4 rounded-xl border-none font-bold text-slate-700 text-sm bg-white/60 focus:bg-white focus:ring-2 ring-purple-200 outline-none transition-all placeholder:text-slate-300" 
+                                    rows="3" placeholder="e.g. If you get ${state.secretCount || state.questions.length} right, I'll tell you my crush... 🤫">${state.secretMessage || ''}</textarea>
                             </div>
                             
                             <div class="fixed bottom-6 left-0 right-0 px-6 max-w-md mx-auto z-30">
@@ -935,13 +963,48 @@ function getFooter() {
                                     <h2 class="text-xl font-black text-slate-800 mb-2">${reaction}</h2>
                                     <p class="text-slate-500 font-bold text-xs">Results for ${state.friendName}</p>
                                 </div>
+                        
+                                                                                        ${state.activeQuiz.secretMessage ? `
+                                <div class="mx-4 mb-6 p-1 rounded-2xl bg-gradient-to-br from-purple-100 to-rose-100 relative overflow-hidden group">
+                                    <div class="bg-white/80 backdrop-blur-md p-4 rounded-xl border border-white/50 relative z-10">
+                                        <div class="flex justify-between items-center mb-3">
+                                            <div class="flex items-center gap-2">
+                                                <i data-lucide="${score >= (state.activeQuiz.secretCount || total) ? 'unlock' : 'lock'}" class="${score >= (state.activeQuiz.secretCount || total) ? 'text-emerald-500' : 'text-purple-400'}" size="16"></i>
+                                                <span class="text-xs font-black uppercase tracking-widest text-slate-500">Secret Tea</span>
+                                            </div>
+                                            <span class="text-[10px] font-black ${score >= (state.activeQuiz.secretCount || total) ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-400'} px-2 py-1 rounded-lg">
+                                                ${score >= (state.activeQuiz.secretCount || total) ? 'UNLOCKED' : `LOCKED (Need ${state.activeQuiz.secretCount || total} Correct)`}
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="relative">
+                                            <p class="font-bold text-slate-700 text-sm leading-relaxed ${score >= (state.activeQuiz.secretCount || total) ? '' : 'blur-sm select-none opacity-60'}">
+                                                ${score >= (state.activeQuiz.secretCount || total) ? state.activeQuiz.secretMessage : 'This message is locked! Get more correct answers to read the tea. 💅'}
+                                            </p>
+                                            
+                                            ${score < (state.activeQuiz.secretCount || total) ? `
+                                            <div class="absolute inset-0 flex items-center justify-center">
+                                                <div class="bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg transform rotate-3">
+                                                    Top Secret 🤫
+                                                </div>
+                                            </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                ` : ''}
+
+                        
                                 <div class="text-left space-y-4">
                                     <h3 class="font-black text-slate-400 text-xs uppercase tracking-widest ml-4 flex items-center gap-2">Receipts 🧾 <span class="text-[10px] opacity-50">(Only you see this)</span></h3>
                                     <div class="space-y-3 pb-4">${reviewHtml}</div>
                                 </div>
                                 <button onclick="resetAttempt()" class="w-full py-4 bg-white text-rose-400 rounded-full font-bold text-lg shadow-sm border-2 border-rose-100 mb-3 hover:bg-rose-50 transition-colors">Next Person Plays 🔄</button>
-                                <button onclick="handleStartOwnQuiz()" class="w-full py-4 btn-primary rounded-full font-bold text-lg shadow-xl sticky bottom-6">Create My Own 🍭</button>
-                            </div>
+                                 <button onclick="handleStartOwnQuiz()" class="w-full py-4 btn-primary rounded-full font-bold text-lg shadow-xl sticky bottom-6 flex items-center justify-center gap-2 group">
+                                    <span>${percent < 50 ? `Get Revenge on ${state.activeQuiz.creatorName} 😈` : `Test ${state.activeQuiz.creatorName} Back ✨`}</span>
+                                    <i data-lucide="arrow-right" class="group-hover:translate-x-1 transition-transform" size="20"></i>
+                                </button>
+                                     </div>
                             ${soundBtn}
                         </div>`;
 
@@ -955,6 +1018,21 @@ function getFooter() {
                                     <h1 class="text-3xl font-black text-slate-800">Do you know<br/><span class="text-rose-500">${state.activeQuiz.creatorName}</span>?</h1>
                                     ${state.activeQuiz.message ? `<div class="bg-white/50 inline-block px-4 py-2 rounded-xl text-slate-500 text-sm font-bold italic border border-white">"${state.activeQuiz.message}"</div>` : ''}
                                 </div>
+                        
+                                                        ${state.activeQuiz.secretMessage ? `
+                                <div class="mt-4 animate-bounce">
+                                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-100 to-rose-100 rounded-full border-2 border-white shadow-sm transform -rotate-1">
+                                        <div class="bg-white p-1 rounded-full text-purple-500">
+                                            <i data-lucide="lock" size="12"></i>
+                                        </div>
+                                        <span class="text-[10px] font-black text-purple-600 uppercase tracking-widest">
+                                            Secret waiting: Need ${state.activeQuiz.secretCount || state.activeQuiz.questions.length} Correct
+                                        </span>
+                                    </div>
+                                </div>
+                                ` : ''}
+
+                        
                                 <div class="glass-panel p-2 rounded-[2rem] shadow-xl flex items-center">
                                     <input type="text" id="friendNameInput" placeholder="Enter your name... 💕" class="w-full p-4 bg-transparent text-center font-bold text-xl text-slate-800 outline-none placeholder:text-slate-300">
                                 </div>
@@ -1559,7 +1637,27 @@ if (state.showShareCard && state.attemptResult) {
     const percent = (score/total)*100;
     
     // Dynamic vibe check text
-    const vibeText = percent === 100 ? "SOULMATES" : percent > 50 ? "BESTIES" : "STRANGERS";
+        // --- ROAST LOGIC START ---
+    let vibeText = "";
+    let roastText = "";
+
+    if (percent === 100) {
+        vibeText = "SOULMATE STATUS 💍";
+        roastText = "Is this obsession? (Yes)";
+    } else if (percent >= 80) {
+        vibeText = "BESTIE TIER 💖";
+        roastText = "You actually listen to me 🥹";
+    } else if (percent >= 50) {
+        vibeText = "MID TIER POOKIE 😐";
+        roastText = "Do better next time 💅";
+    } else if (percent >= 20) {
+        vibeText = "FAKE FRIEND 🚨";
+        roastText = "The audacity to score this low 💀";
+    } else {
+        vibeText = "TOTAL STRANGER 🤡";
+        roastText = "Who even are you?";
+    }
+    // --- ROAST LOGIC END ---
     
     const modal = document.createElement('div');
     modal.className = "fixed inset-0 z-[9000] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6";
@@ -1594,15 +1692,21 @@ if (state.showShareCard && state.attemptResult) {
                             </div>
                         </div>
 
-                        <div class="space-y-1">
-                            <h2 class="text-2xl font-black text-slate-700 uppercase tracking-tight">${vibeText}</h2>
-                           <p class="text-sm font-bold text-slate-500">
-    ${state.friendName} <span class="text-rose-400">×</span> 
-    ${state.tempCreatorName || (state.activeQuiz ? state.activeQuiz.creatorName : 'Creator')}
-</p>
+                        <div class="flex flex-col items-center gap-1">
+                            <h2 class="text-2xl font-black text-slate-700 uppercase tracking-tight leading-none">${vibeText}</h2>
+                            
+                            <div class="bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg transform -rotate-2 mb-2 mt-1 shadow-sm">
+                                <p class="text-[10px] font-black text-rose-500 uppercase tracking-wide leading-tight">${roastText}</p>
+                            </div>
 
+                            <p class="text-sm font-bold text-slate-500">
+                                ${state.friendName} <span class="text-rose-400">×</span> 
+                                ${state.tempCreatorName || (state.activeQuiz ? state.activeQuiz.creatorName : 'Creator')}
+                            </p>
                         </div>
-                    </div>
+                       
+
+                   </div>
 
                     <div class="w-full p-4 rounded-3xl flex items-center justify-between bg-white/90 border border-white shadow-sm">
                         <div class="text-left">
@@ -2176,6 +2280,9 @@ if (state.showVibePicker) {
             mode: String(state.selectedMode || 'friends'), 
             lieDetector: state.lieDetector,
             message: String(state.message || ''),
+            secretMessage: String(state.secretMessage || ''),
+            secretCount: Math.min(Number(state.secretCount || state.questions.length), cleanQuestions.length),
+
             timestamp: new Date().toISOString()
         };
 
@@ -2238,6 +2345,9 @@ if (state.showVibePicker) {
     state.attemptResult = null; 
     state.activeQuiz = null;
     state.quizId = null; 
+    state.secretMessage = '';
+    state.secretCount = null;
+    state.message = '';
 
     // Auto-fill profile name if they just played as a guest
     if (state.friendName) {

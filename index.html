@@ -719,23 +719,6 @@ function getFooter() {
 
                                                         <div class="flex-1 space-y-5">
                                 
-                                ${state.questions.length > 0 ? `
-                                <div class="glass-panel p-4 rounded-2xl flex items-center justify-between mb-6 mx-4 border-2 ${state.lieDetector ? 'border-rose-400 bg-rose-50' : 'border-transparent'} transition-all animate-enter">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-full ${state.lieDetector ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-400'} flex items-center justify-center transition-colors">
-                                            <i data-lucide="siren" size="20"></i>
-                                        </div>
-                                        <div class="text-left">
-                                            <h3 class="font-black text-slate-800 text-sm">Panic Mode 🚨</h3>
-                                            <p class="text-[10px] font-bold text-slate-400">One-by-one Qs with "Sus" alerts</p>
-                                        </div>
-                                    </div>
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" onchange="toggleLieDetector()" ${state.lieDetector ? 'checked' : ''} class="sr-only peer">
-                                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
-                                    </label>
-                                </div>
-                                ` : ''}
 
                                 <div class="text-center px-4">
 
@@ -820,11 +803,29 @@ function getFooter() {
                                 case 'preview':
                     html = `
                     <div class="no-scroll items-center p-6">
-                        <div class="w-full max-w-md space-y-6 pb-32 animate-enter">
+                        <div class="w-full max-w-md space-y-6 pb-32">
+
                             <div class="flex items-center gap-3 mb-4">
                                 <button onclick="setView('create')" class="p-3 bg-white rounded-full text-slate-400 shadow-sm hover:text-rose-500 transition-colors"><i data-lucide="arrow-left" size="20"></i></button>
                                 <h2 class="text-2xl font-black text-slate-800">Final Look ✨</h2>
                             </div>
+                
+                                            <div class="glass-panel p-4 rounded-[1.5rem] flex items-center justify-between mb-4 border-2 ${state.lieDetector ? 'border-rose-400 bg-rose-50/50' : 'border-transparent'} transition-all">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full ${state.lieDetector ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-400'} flex items-center justify-center transition-colors">
+                                        <i data-lucide="siren" size="20"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <h3 class="font-black text-slate-800 text-sm">Panic Mode 🚨</h3>
+                                        <p class="text-[10px] font-bold text-slate-400 max-w-[180px] leading-tight">Detects hesitation. If they slow down, they get roasted! 😈</p>
+                                    </div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="toggleLieDetector()" ${state.lieDetector ? 'checked' : ''} class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                                </label>
+                            </div>
+
                             
                             <div class="space-y-3">
                                 ${state.questions.map((q, idx) => `
@@ -867,7 +868,7 @@ function getFooter() {
                                 </div>
                                 <textarea oninput="updateQuizConfig('secretMessage', this.value)" 
                                     class="w-full p-4 rounded-xl border-none font-bold text-slate-700 text-sm bg-white/60 focus:bg-white focus:ring-2 ring-purple-200 outline-none transition-all placeholder:text-slate-300" 
-                                    rows="3" placeholder="e.g. If you get ${state.secretCount || state.questions.length} right, I'll tell you my crush... 🤫">${state.secretMessage || ''}</textarea>
+                                    rows="3" placeholder="e.g. If you get ${state.secretCount || state.questions.length} right, I'll tell you my top secret... 🤫">${state.secretMessage || ''}</textarea>
                             </div>
                             
                             <div class="fixed bottom-6 left-0 right-0 px-6 max-w-md mx-auto z-30">
@@ -1056,7 +1057,7 @@ function getFooter() {
 
                             html = `
                             <div class="min-h-screen flex flex-col p-6 relative">
-                                <div class="flex items-center mb-8 animate-enter relative z-30 h-10">
+                                <div class="flex items-center mb-8 relative z-30 h-10">
     <button onclick="handleExitQuiz()" class="px-4 py-2 bg-white/50 text-slate-500 rounded-full text-xs font-black hover:bg-rose-100 hover:text-rose-500 transition-colors border border-white z-20">EXIT ⚠️</button>
     
     <div class="absolute left-0 right-0 flex justify-center pointer-events-none">
@@ -1067,7 +1068,7 @@ function getFooter() {
 </div>
 
 
-                                <div class="flex-1 flex flex-col justify-center pb-20 animate-enter">
+                                <div class="flex-1 flex flex-col justify-center pb-20">
                                     <div class="glass-panel p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden border-2 border-white">
                                         <div class="absolute top-0 left-0 h-1 bg-rose-500 transition-all duration-500" style="width: ${(currentNum/totalNum)*100}%"></div>
                                         <h3 class="text-2xl font-black text-slate-800 mb-8 leading-tight">${q.question}</h3>
@@ -2297,6 +2298,13 @@ window.updateQuizConfig = (key, value) => {
             timestamp: new Date().toISOString()
         };
 
+        
+        if (!state.quizId && state.pendingArchive) {
+             state.quizHistory.push(state.pendingArchive);
+             state.pendingArchive = null;
+        }
+        
+        
         // --- 3. DATABASE SAVE ---
         if (state.quizId) {
             // Updating an existing quiz
@@ -2340,12 +2348,14 @@ window.updateQuizConfig = (key, value) => {
         const alreadySaved = state.quizHistory.some(q => q.id === state.quizId);
         
         if (!alreadySaved) {
-            state.quizHistory.push({
+            // --- FIX: Store in pendingArchive instead of history immediately ---
+            // We only move this to "Memory" if they actually finish the new quiz.
+            state.pendingArchive = {
                 id: state.quizId,
                 timestamp: new Date().toISOString(),
                 questions: JSON.parse(JSON.stringify(state.questions)), 
                 mode: state.selectedMode
-            });
+            };
             saveState(); 
         }
     }
@@ -2465,11 +2475,20 @@ window.toggleMemoryDropdown = () => {
 
         window.updateFriendAnswer = (i, v) => { state.friendAnswers[i] = v; };
         
-        window.handleOptionSelect = (i, v) => {
+                window.handleOptionSelect = (i, v) => {
+            // Lock the screen so it doesn't jump
+            state.skipAnim = true;
+            const y = window.scrollY;
+
             state.friendAnswers[i] = v;
             Sound.play('pop');
             render();
+            
+            // Restore position instantly
+            window.scrollTo(0, y);
+            state.skipAnim = false;
         };
+
     window.resetAttempt = () => {
     state.friendName = '';
     state.friendAnswers = [];
@@ -2481,6 +2500,10 @@ window.toggleMemoryDropdown = () => {
 
 
         window.handleSubmitAttempt = async () => {
+            if (state.panicInterval) {
+        clearInterval(state.panicInterval);
+        state.panicInterval = null;
+    }
     if(state.friendAnswers.some(a => a === '')) { pookieAlert("Don't leave blanks! 🫣", "error"); return; }
     
     state.isLoading = true; state.loadingText = "Calculating vibe check... 📐"; render();

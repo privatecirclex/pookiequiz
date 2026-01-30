@@ -6,7 +6,17 @@
   <meta content='B0F70FCD9E97F8CD852B3F3806BF3814' name='msvalidate.01'/>
     <meta charset='UTF-8'/>
     <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' name='viewport'/>
-    <title>KnowMe - Pookie Edition &#10024;</title>
+    <title>Pookie Quiz - The Ultimate Friendship & Love Test 🎀</title>
+    <meta name="description" content="Create a viral Pookie Quiz to test your friends, crush, or partner! The #1 Know Me Quiz for 2026. Find out who really knows you best with our lie detector mode.">
+    <meta name="keywords" content="pookie quiz, know me quiz, best friend test, crush calculator, compatibility test, friendship quiz 2026, viral tiktok quiz">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://pookiequizlive.vercel.app/" />
+
+    <meta property="og:title" content="Do you know me? Take the Pookie Quiz! 🎀">
+    <meta property="og:description" content="I made a quiz about myself. Test your knowledge and see if you're a real one. 💅">
+    <meta property="og:image" content="https://ui-avatars.com/api/?name=Pookie+Quiz&background=fb7185&color=fff&size=512&font-size=0.33">
+    <meta property="og:url" content="https://pookiequizlive.vercel.app/">
+    <meta property="og:type" content="website">
     <script src='https://cdn.tailwindcss.com'></script>
     <script src='https://unpkg.com/lucide@latest'></script>
     <script src='https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js'></script>
@@ -29,7 +39,7 @@
         /* --- ANIMATED BACKGROUND --- */
         .animated-bg {
             position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
+            top: 0; left: 0; width: 100vw; height: 100dvh;
             background: radial-gradient(circle at 50% 50%, #ffe4e6 0%, #fff1f2 100%);
             z-index: -2;
         }
@@ -130,7 +140,8 @@
     
         // --- IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, arrayUnion, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
         import { getAuth, signInAnonymously} from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 
         // --- CONFIG ---
@@ -512,7 +523,18 @@ window.applyTheme = () => {
         // --- FOOTER COMPONENT ---
 function getFooter() {
     return `
-    <div class="py-8 text-center space-y-2 opacity-60 relative z-10">
+    <div class="py-12 text-center space-y-4 opacity-80 relative z-10 px-6">
+        <div class="max-w-2xl mx-auto text-[10px] text-slate-400 leading-relaxed opacity-50">
+            <h2 class="sr-only">About Pookie Quiz</h2>
+            <p>
+                Welcome to the <strong>Official Pookie Quiz</strong>, the viral <strong>Know Me Quiz</strong> taking over TikTok and Instagram. 
+                Whether you want to test your <strong>best friends</strong>, challenge your <strong>besties or partners</strong>, 
+                or send a hint to your <strong>crush</strong>, this interactive trivia maker is the perfect <strong>friendship test</strong>.
+                Features include our exclusive <strong>Lie Detector Mode</strong>, custom questions, and instant compatibility results.
+                Start your <strong>2026 Friendship Quiz</strong> today.
+            </p>
+        </div>
+
         <div class="flex justify-center gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
             <button onclick="openLegal('about')" class="hover:text-rose-500 transition-colors">About</button>
             <span>•</span>
@@ -521,11 +543,11 @@ function getFooter() {
             <button onclick="openLegal('privacy')" class="hover:text-rose-500 transition-colors">Privacy</button>
             <span>•</span>
             <button onclick="openLegal('contact')" class="hover:text-rose-500 transition-colors">Contact</button>
-
         </div>
         <p class="text-[10px] text-slate-400">© ${new Date().getFullYear()} KnowMe Pookie Edition. Crafted in Kashmir.</p>
     </div>`;
 }
+
 
         
         // --- RENDERER ---
@@ -1138,7 +1160,7 @@ function getFooter() {
                     // Prepare data helpers
                     const sortedByScore = [...state.attempts].sort((a, b) => b.score - a.score);
                 const allQuizzes = [...state.quizHistory];
-                    const sortedByDate = [...state.attempts].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    const sortedByDate = [...state.attempts].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp || 0));
                     const topThree = sortedByScore.slice(0, 3);
                     const maxScore = state.attempts.length ? sortedByScore[0].score : 0;
 
@@ -1791,7 +1813,7 @@ if (state.showVibePicker) {
             setView(v);
         };
 
-                window.setView = (v) => {
+                        window.setView = (v) => {
             // 1. Clear Panic Timer if leaving the quiz
             if (state.panicInterval) {
                 clearInterval(state.panicInterval);
@@ -1804,9 +1826,16 @@ if (state.showVibePicker) {
                 state.unsubscribe = null;
             }
 
+            // 3. NEW: Save to browser history so "Back" button works
+            if (state.view !== v) {
+                // This adds a "history entry" to the browser
+                window.history.pushState({ view: v }, null, `?mode=${v}`);
+            }
+
             state.view = v; 
             render(); 
         };
+
 
 
         window.toggleSound = () => { if(Sound.toggle()) Sound.play('pop'); render(); };
@@ -2173,24 +2202,28 @@ if (state.showVibePicker) {
 };
 
 
-        window.addOption = (qi) => { 
-    if(state.questions[qi].options.length < 4) { 
-        state.skipAnim = true;
-        const y = window.scrollY;
+                window.addOption = (qi) => { 
+            if(state.questions[qi].options.length < 4) { 
+                state.skipAnim = true;
+                const y = window.scrollY;
 
-        state.questions[qi].options.push(''); 
-        render(); 
+                state.questions[qi].options.push(''); 
+                render(); 
 
-        // FIX: Auto-focus the new option input
-        setTimeout(() => {
-            const inputs = document.querySelectorAll(`input[oninput^="updateOption(${qi}"]`);
-            if(inputs.length > 0) inputs[inputs.length - 1].focus();
-        }, 50);
+                // --- FIX: Auto-focus the new option input ---
+                // We wait 50ms for the screen to update, then find the new input
+                setTimeout(() => {
+                    // This finds all inputs that belong to this specific question
+                    const inputs = document.querySelectorAll(`input[oninput^="updateOption(${qi}"]`);
+                    // If we found them, focus on the LAST one (the new one)
+                    if(inputs.length > 0) inputs[inputs.length - 1].focus();
+                }, 50);
 
-        window.scrollTo(0, y);
-        state.skipAnim = false;
-    }
-};
+                window.scrollTo(0, y);
+                state.skipAnim = false;
+            }
+        };
+
 
 
         window.removeOption = (qi, oi) => {
@@ -2408,21 +2441,44 @@ window.updateQuizConfig = (key, value) => {
             state.showDashboardConfirm = true; render(); };
         window.cancelDashboard = () => { state.showDashboardConfirm = false; render(); };
         
-                       window.confirmDashboard = () => {
+                               window.confirmDashboard = async () => {
             state.showDashboardConfirm = false;
             const originView = state.view;
             state.isLoading = true; 
-            state.loadingText = "Spilling tea... ☕️"; 
+            state.loadingText = "Retrieving your tea... ☕️"; 
             render();
             
+            // --- FIX: Fetch Permanent History from Database ---
+            try {
+                const user = auth.currentUser;
+                if (user) {
+                    // Ask database: "Give me ALL quizzes made by this user, newest first"
+                    const historyQuery = query(
+                        collection(db, "quizzes"), 
+                        where("creatorId", "==", user.uid),
+                        orderBy("timestamp", "desc")
+                    );
+                    
+                    const historySnapshot = await getDocs(historyQuery);
+                    
+                    // Update the "Memory Box" with real data from the database
+                    state.quizHistory = historySnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                }
+            } catch (e) {
+                console.error("History fetch failed:", e);
+                // We don't stop the app here, we just rely on local storage as a backup
+            }
+            // ------------------------------------------------
+
             // Clear previous listener
             if (state.unsubscribe) {
                 state.unsubscribe();
                 state.unsubscribe = null;
             }
             
-            // --- FIX: Show Pending Quiz data if we are in "Draft Mode" ---
-            // If no active quiz (Drafting), use the Pending Archive ID so results aren't empty.
             const displayId = state.quizId || (state.pendingArchive ? state.pendingArchive.id : null);
 
             if (displayId) {
@@ -2432,8 +2488,6 @@ window.updateQuizConfig = (key, value) => {
                             const data = docSnap.data();
                             state.attempts = data.attempts || [];
                             
-                            // SAFETY: Only overwrite questions if it is the ACTIVE quiz.
-                            // If we are viewing the 'Pending' quiz, DO NOT touch state.questions (keep your draft!)
                             if(state.quizId && displayId === state.quizId && data.questions) {
                                 state.questions = data.questions;
                             }
@@ -2452,7 +2506,6 @@ window.updateQuizConfig = (key, value) => {
                     pookieAlert("Setup error", "error");
                 }
             } else {
-                // Truly empty (No active quiz AND no pending archive)
                 state.attempts = []; 
                 state.isLoading = false;
                 state.dashboardOrigin = originView;
@@ -2770,6 +2823,19 @@ window.closeVibePicker = () => { state.showVibePicker = false; render(); };
 
         async function initApp() {
             loadLocalState();
+                        // --- NEW: Handle Browser Back Button ---
+            window.onpopstate = (event) => {
+                if (event.state && event.state.view) {
+                    // Go back to the view stored in history
+                    state.view = event.state.view;
+                    render();
+                } else {
+                    // If no history, default to landing page
+                    state.view = 'landing';
+                    render();
+                }
+            };
+
             const urlParams = new URLSearchParams(window.location.search);
             const quizId = urlParams.get('q');
 

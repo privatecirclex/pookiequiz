@@ -977,10 +977,16 @@ function getFooter() {
 
                             html = `
                             <div class="min-h-screen flex flex-col p-6 relative">
-                                <div class="flex items-center justify-between mb-8 animate-enter">
-                                    <button onclick="handleExitQuiz()" class="px-4 py-2 bg-white/50 text-slate-500 rounded-full text-xs font-black hover:bg-rose-100 hover:text-rose-500 transition-colors border border-white">EXIT ⚠️</button>
-                                    <div class="px-4 py-2 bg-slate-800 text-white rounded-full text-xs font-black tracking-widest shadow-lg">${currentNum} / ${totalNum}</div>
-                                </div>
+                                <div class="flex items-center mb-8 animate-enter relative z-30 h-10">
+    <button onclick="handleExitQuiz()" class="px-4 py-2 bg-white/50 text-slate-500 rounded-full text-xs font-black hover:bg-rose-100 hover:text-rose-500 transition-colors border border-white z-20">EXIT ⚠️</button>
+    
+    <div class="absolute left-0 right-0 flex justify-center pointer-events-none">
+        <div class="px-6 py-2 bg-slate-800 text-white rounded-full text-xs font-black tracking-widest shadow-xl border-2 border-white/20">
+            ${currentNum} / ${totalNum}
+        </div>
+    </div>
+</div>
+
 
                                 <div class="flex-1 flex flex-col justify-center pb-20 animate-enter">
                                     <div class="glass-panel p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden border-2 border-white">
@@ -1693,6 +1699,65 @@ if (state.showVibePicker) {
             lucide.createIcons();
             setTimeout(() => { t.style.opacity = '0'; setTimeout(()=>t.remove(), 300); }, 2500);
         };
+    
+            // --- NEW: SAFE ZONE STICKERS (Non-Overlapping) ---
+        window.showPanicSticker = (text, type='sus') => {
+            const el = document.createElement('div');
+            
+            // 1. Define Vertical Safe Zones (Away from buttons)
+            // Spot A: Below the header (Top 24)
+            // Spot B: Above the Next button (Bottom 32)
+            const positions = [
+                'top-24 left-1/2 -translate-x-1/2', 
+                'bottom-32 left-1/2 -translate-x-1/2'
+            ];
+            
+            // Pick a random safe spot
+            const randomPos = positions[Math.floor(Math.random() * positions.length)];
+            
+            // Random Tilt (Wild rotation)
+            const rotate = Math.random() * 30 - 15; 
+
+            // Colors
+            const styles = type === 'sus' 
+                ? 'bg-rose-500 text-white border-rose-700' 
+                : 'bg-emerald-400 text-white border-emerald-600';
+            
+            const icon = type === 'sus' ? '👀' : '⚡';
+
+            // Apply Safe Position & High Z-Index
+            el.className = `fixed ${randomPos} z-[9999] pointer-events-none`;
+            
+            el.innerHTML = `
+                <div class="${styles} px-6 py-2 rounded-full border-b-4 font-black text-sm shadow-xl flex items-center gap-2 whitespace-nowrap animate-sticker-pop origin-center" style="transform: rotate(${rotate}deg)">
+                    <span class="text-xl">${icon}</span>
+                    <span class="uppercase tracking-widest drop-shadow-sm">${text}</span>
+                </div>
+                <style>
+                    @keyframes sticker-pop {
+                        0% { transform: scale(0) rotate(${rotate - 45}deg); opacity: 0; }
+                        60% { transform: scale(1.1) rotate(${rotate}deg); opacity: 1; }
+                        80% { transform: scale(0.95) rotate(${rotate}deg); }
+                        100% { transform: scale(1) rotate(${rotate}deg); }
+                    }
+                </style>
+            `;
+
+            document.body.appendChild(el);
+            
+            // Sound Effect
+            if(type === 'sus') Sound.play('error'); else Sound.play('success');
+
+            // Remove quickly (1.5s) to keep screen clean
+            setTimeout(() => {
+                el.style.transition = "all 0.3s ease-in";
+                el.style.opacity = "0";
+                el.style.transform = `scale(0.5) rotate(${rotate}deg)`; 
+                setTimeout(() => el.remove(), 300);
+            }, 1500); 
+        };
+
+    
             // --- NEW: PANIC MODE LOGIC ---
         window.toggleLieDetector = () => {
             state.lieDetector = !state.lieDetector;
@@ -1710,9 +1775,9 @@ if (state.showVibePicker) {
                 // If they take longer than 8 seconds... PANIC!
                 if (elapsed > 8 && !state.hasPanicked) {
                     const msgs = ["Brain freeze? 🥶", "Why the hesitation? 🤨", "Sweating? 💦", "Calculating the lie... 🧮"];
-                    pookieAlert(msgs[Math.floor(Math.random() * msgs.length)], "error");
+                                     showPanicSticker(msgs[Math.floor(Math.random() * msgs.length)], "sus"); 
                     state.hasPanicked = true; 
-                    Sound.play('error');
+                    
                 }
             }, 1000);
         };
@@ -1732,7 +1797,7 @@ if (state.showVibePicker) {
 
             // 2. Check for "Instantly Sus" behavior (< 1.5s)
             if (elapsed < 1.5) {
-                 pookieAlert("Stalker speed! ⚡", "success");
+                 showPanicSticker("STALKER SPEED!", "fast"); 
             }
 
             // 3. Move to next or Submit

@@ -2408,7 +2408,7 @@ window.updateQuizConfig = (key, value) => {
     }
     
     // If we have an active quiz, fetch its live data
-    if (hasActiveQuiz) {
+    if (state.quizId) {
         try {
             state.unsubscribe = onSnapshot(doc(db, "quizzes", state.quizId), (docSnap) => {
                 if (docSnap.exists()) {
@@ -2759,8 +2759,7 @@ window.closeVibePicker = () => { state.showVibePicker = false; render(); };
                     state.isLoading = false;
                     render();
                 }
-            
-            } else {
+      } else {
                 // FIX: Intelligent Redirect on Reload
                 if (state.profileCompleted) {
                     // 1. If we have a finished quiz (ID exists), default to SHARE to hide old questions

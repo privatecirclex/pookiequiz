@@ -1138,7 +1138,6 @@ function getFooter() {
                     // Prepare data helpers
                     const sortedByScore = [...state.attempts].sort((a, b) => b.score - a.score);
                 const allQuizzes = [...state.quizHistory];
-                    if (state.pendingArchive) allQuizzes.push(state.pendingArchive);
                     const sortedByDate = [...state.attempts].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     const topThree = sortedByScore.slice(0, 3);
                     const maxScore = state.attempts.length ? sortedByScore[0].score : 0;
@@ -2409,54 +2408,58 @@ window.updateQuizConfig = (key, value) => {
             state.showDashboardConfirm = true; render(); };
         window.cancelDashboard = () => { state.showDashboardConfirm = false; render(); };
         
-                window.confirmDashboard = () => {
-    state.showDashboardConfirm = false;
-                    
-    
-    
-    // Capture where we came from
-    const originView = state.view;
-    state.isLoading = true; 
-    state.loadingText = "Spilling tea... ☕️"; 
-    render();
-    
-    // Clear previous listener if exists
-    if (state.unsubscribe) {
-        state.unsubscribe();
-        state.unsubscribe = null;
-    }
-    
-    // If we have an active quiz, fetch its live data
-    if (state.quizId) {
-        try {
-            state.unsubscribe = onSnapshot(doc(db, "quizzes", state.quizId), (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    state.attempts = data.attempts || [];
-                    if(data.questions) state.questions = data.questions;
-                    
+                       window.confirmDashboard = () => {
+            state.showDashboardConfirm = false;
+            const originView = state.view;
+            state.isLoading = true; 
+            state.loadingText = "Spilling tea... ☕️"; 
+            render();
+            
+            // Clear previous listener
+            if (state.unsubscribe) {
+                state.unsubscribe();
+                state.unsubscribe = null;
+            }
+            
+            // --- FIX: Show Pending Quiz data if we are in "Draft Mode" ---
+            // If no active quiz (Drafting), use the Pending Archive ID so results aren't empty.
+            const displayId = state.quizId || (state.pendingArchive ? state.pendingArchive.id : null);
+
+            if (displayId) {
+                try {
+                    state.unsubscribe = onSnapshot(doc(db, "quizzes", displayId), (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            state.attempts = data.attempts || [];
+                            
+                            // SAFETY: Only overwrite questions if it is the ACTIVE quiz.
+                            // If we are viewing the 'Pending' quiz, DO NOT touch state.questions (keep your draft!)
+                            if(state.quizId && displayId === state.quizId && data.questions) {
+                                state.questions = data.questions;
+                            }
+                            
+                            state.isLoading = false;
+                            state.dashboardOrigin = originView;
+                            setView('dashboard');
+                        }
+                    }, (error) => {
+                        state.isLoading = false;
+                        console.error(error);
+                        pookieAlert("Could not load results", "error");
+                    });
+                } catch(e) {
                     state.isLoading = false;
-                    state.dashboardOrigin = originView;
-                    setView('dashboard');
+                    pookieAlert("Setup error", "error");
                 }
-            }, (error) => {
+            } else {
+                // Truly empty (No active quiz AND no pending archive)
+                state.attempts = []; 
                 state.isLoading = false;
-                console.error(error);
-                pookieAlert("Could not load results", "error");
-            });
-        } catch(e) {
-            state.isLoading = false;
-            pookieAlert("Setup error", "error");
-        }
-    } else {
-        // If no active quiz (but we have history), just go to dashboard
-        // The dashboard will show the Envelopes and "0 Plays" for active
-        state.attempts = []; // Clear active attempts
-        state.isLoading = false;
-        state.dashboardOrigin = originView;
-        setView('dashboard');
-    }
-};
+                state.dashboardOrigin = originView;
+                setView('dashboard');
+            }
+        };
+
 
 
 window.toggleMemoryDropdown = () => { 
@@ -2562,9 +2565,9 @@ window.toggleMemoryDropdown = () => {
     state.skipAnim = true;
     state.lastScrollY = window.scrollY; // Save to a state variable since we leave the view
 
-    const archive = index < state.quizHistory.length 
-                ? state.quizHistory[index] 
-                : state.pendingArchive;
+                // --- Standard Access ---
+            const archive = state.quizHistory[index];
+
     
              state.isLoading = true; state.loadingText = "Unsealing memory... 💌"; render();
     try {

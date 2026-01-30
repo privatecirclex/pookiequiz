@@ -1613,27 +1613,43 @@ if (state.viewingEnvelope) {
     root.appendChild(modal);
 }
 
-if (state.viewingEnvelopeAttempt) {
-    const attempt = state.viewingEnvelopeAttempt;
-    const reviewHtml = state.viewingEnvelope.questions.map((q, i) => {
-        const userAns = attempt.answers[i] || "Skipped";
-        const isCorrect = userAns.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim();
-        return `
-        <div class="glass-panel p-4 rounded-2xl mb-3 border-l-4 ${isCorrect ? 'border-emerald-400 bg-emerald-50/50' : 'border-rose-400 bg-rose-50/50'}">
-            <div class="flex justify-between items-start mb-2"><p class="font-bold text-slate-700 text-sm pr-2 leading-tight">${q.question}</p>${isCorrect ? '<i data-lucide="check" size="14" class="text-emerald-500"></i>' : '<i data-lucide="x" size="14" class="text-rose-500"></i>'}</div>
-            <div class="text-xs font-bold text-slate-500"><span class="${isCorrect ? 'text-emerald-600' : 'text-rose-500 line-through'}">${userAns}</span>${!isCorrect ? `<span class="text-emerald-600 ml-2">Correct: ${q.correctAnswer}</span>` : ''}</div>
-        </div>`;
-    }).join('');
+            if (state.viewingEnvelopeAttempt) {
+                const attempt = state.viewingEnvelopeAttempt;
+                const reviewHtml = state.viewingEnvelope.questions.map((q, i) => {
+                    const userAns = attempt.answers[i] || "Skipped";
+                    const isCorrect = userAns.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim();
+                    return `
+                    <div class="glass-panel p-4 rounded-2xl mb-3 border-l-4 ${isCorrect ? 'border-emerald-400 bg-emerald-50/50' : 'border-rose-400 bg-rose-50/50'}">
+                        <div class="flex justify-between items-start mb-2"><p class="font-bold text-slate-700 text-sm pr-2 leading-tight">${q.question}</p>${isCorrect ? '<i data-lucide="check" size="14" class="text-emerald-500"></i>' : '<i data-lucide="x" size="14" class="text-rose-500"></i>'}</div>
+                        <div class="text-xs font-bold text-slate-500"><span class="${isCorrect ? 'text-emerald-600' : 'text-rose-500 line-through'}">${userAns}</span>${!isCorrect ? `<span class="text-emerald-600 ml-2">Correct: ${q.correctAnswer}</span>` : ''}</div>
+                    </div>`;
+                }).join('');
 
-    const modal = document.createElement('div');
-    modal.className = "fixed inset-0 z-[8000] bg-white/95 backdrop-blur-xl overflow-y-auto no-scroll";
-    modal.innerHTML = `
-        <div class="w-full max-w-md mx-auto p-6 pb-20 animate-enter">
-            <div class="flex items-center gap-3 mb-6"><button onclick="closeEnvelopeReceipt()" class="p-3 bg-white rounded-full border border-slate-100"><i data-lucide="arrow-left" size="20"></i></button><h2 class="text-xl font-black text-slate-800">${attempt.friendName}'s Past Result</h2></div>
-            <div class="space-y-2">${reviewHtml}</div>
-        </div>`;
-    root.appendChild(modal);
-}
+                const modal = document.createElement('div');
+                modal.className = "fixed inset-0 z-[8000] bg-white/95 backdrop-blur-xl overflow-y-auto no-scroll";
+                
+                modal.innerHTML = `
+                    <div class="w-full max-w-md mx-auto p-6 pb-20 animate-enter">
+                        <div class="flex items-center gap-3 mb-6 sticky top-0 bg-white/95 backdrop-blur-md py-4 z-20 -mx-6 px-6 border-b border-slate-100">
+                            <button onclick="closeEnvelopeReceipt()" class="p-3 bg-slate-50 rounded-full text-slate-400 border border-slate-200 hover:text-rose-500 hover:border-rose-200 transition-colors"><i data-lucide="arrow-left" size="20"></i></button>
+                            <div>
+                                <h2 class="text-xl font-black text-slate-800">${attempt.friendName}'s Memory</h2>
+                                <p class="text-xs font-bold text-slate-400">Score: ${attempt.score}/${state.viewingEnvelope.questions.length}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mb-8">${reviewHtml}</div>
+
+                        <button onclick="shareFromMemory()" class="w-full py-4 bg-slate-50 border-2 border-dashed border-slate-300 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white hover:border-rose-300 hover:text-rose-500 hover:shadow-lg transition-all flex items-center justify-center gap-2 group">
+                            <div class="bg-white p-1.5 rounded-lg border border-slate-200 group-hover:border-rose-200 transition-colors">
+                                <i data-lucide="camera" size="16"></i>
+                            </div>
+                            <span>Capture Memory</span>
+                        </button>
+                    </div>`;
+                root.appendChild(modal);
+            }
+
             // --- NEW: Instagram Share Card Modal ---
 if (state.showShareCard && state.attemptResult) {
 
@@ -2674,6 +2690,18 @@ window.shareFromDashboard = () => {
     openShareCard();
 };
 
+window.shareFromMemory = () => {
+    // 1. Prepare data from the archive
+    state.tempCreatorName = state.profile.name; 
+    state.attemptResult = state.viewingEnvelopeAttempt;
+    state.friendName = state.viewingEnvelopeAttempt.friendName;
+    
+    // 2. Close the memory modal so the card can show
+    state.viewingEnvelopeAttempt = null;
+    
+    // 3. Open the Share Card
+    openShareCard();
+};
 
 
                // --- UTILITIES ---

@@ -2768,8 +2768,7 @@ window.closeVibePicker = () => { state.showVibePicker = false; render(); };
                     state.isLoading = false;
                     render();
                 }
-            } else {
-                // FIX: Don't kick user out of Share or Dashboard on refresh
+            
             } else {
                 // FIX: Intelligent Redirect on Reload
                 if (state.profileCompleted) {

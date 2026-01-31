@@ -53,7 +53,7 @@
             switch(state.view) {
                                 case 'landing':
                     html = `
-                    <div class="min-h-screen overflow-y-auto overflow-x-hidden justify-center p-6 text-center">
+                    <div class="no-scroll justify-center p-6 text-center">
                         <div class="w-full max-w-sm space-y-8 animate-enter">
                             <div class="relative inline-block animate-float-slow">
                                 <div class="glass-panel p-8 rounded-[2.5rem] shadow-xl transform rotate-3 border-2 border-white">
@@ -74,7 +74,7 @@
                             </button>
                         </div>
 
-                            <div class="pt-8 opacity-50 animate-pulse">
+                            <div class="pt-8 opacity-50 animate-bounce">
                                 <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Scroll for Tea</p>
                                 <i data-lucide="chevron-down" class="mx-auto text-slate-400"></i>
                             </div>

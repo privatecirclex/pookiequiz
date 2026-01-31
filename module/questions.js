@@ -1,0 +1,53 @@
+         export const QUIZ_TEMPLATES = {
+            friends: [
+                { q: "My go-to mood when I’m tired?", options: [] },
+                { q: "What’s my biggest pet peeve?", options: ["Loud chewing", "Fake people", "Being ignored", "Being rushed"] },
+                { q: "What time of day am I most active?", options: ["Morning", "Afternoon", "Night"] },
+                { q: "What food can always fix my mood?", options: [] },
+                { q: "If I’m quiet for too long, what does it mean?", options: ["I’m sad", "I’m overthinking", "I’m busy", "I’m angry"] },
+                { q: "My comfort activity is...", options: [] },
+                { q: "What kind of friend am I in a crisis?", options: ["Listener", "Problem-solver", "Distractor", "Silent supporter"] },
+                { q: "One thing I can never say “no” to?", options: [] },
+                { q: "What annoys me more?", options: ["Being late", "Being lied to"] },
+                { q: "My favorite way to spend a free day?", options: [] },
+                { q: "Am I more:", options: ["Emotional", "Logical"] },
+                { q: "What’s my most-used phrase?", options: [] },
+                { q: "If I disappear, where am I most likely?", options: ["Sleeping", "Overthinking", "Watching something", "Offline by choice"] },
+                { q: "What do I value more?", options: ["Loyalty", "Honesty"] },
+                { q: "One word that describes me best?", options: [] }
+            ],
+            couple: [
+                { q: "What nickname suits me the most?", options: [] },
+                { q: "Am I more:", options: ["Calm pookie", "Chaotic pookie"] },
+                { q: "What small thing makes me smile instantly?", options: [] },
+                { q: "If I’m sad, what do I secretly want?", options: ["Space", "Reassurance", "Distraction"] },
+                { q: "My ideal late-night activity?", options: [] },
+                { q: "Am I more:", options: ["Clingy", "Independent"] },
+                { q: "What kind of compliments affect me most?", options: ["Looks", "Effort", "Personality"] },
+                { q: "My favorite emoji describes me best?", options: [] },
+                { q: "When I miss someone, I usually:", options: ["Text", "Stay quiet", "Act normal"] },
+                { q: "One habit I have that’s low-key cute?", options: [] },
+                { q: "What makes me feel safe?", options: [] },
+                { q: "Am I more:", options: ["Words person", "Actions person"] },
+                { q: "My comfort word when overwhelmed?", options: [] },
+                { q: "Do I fall asleep easily?", options: ["Yes", "No, brain won’t shut up"] },
+                { q: "What vibe do I give?", options: ["Soft", "Protective", "Mysterious"] }
+            ],
+            crush: [
+                { q: "First thing people usually notice about me?", options: [] },
+                { q: "Am I more:", options: ["Introvert", "Ambivert", "Extrovert"] },
+                { q: "What kind of conversations do I enjoy most?", options: [] },
+                { q: "How do I act when I like someone?", options: ["Quiet", "Teasing", "Extra caring"] },
+                { q: "My love language is?", options: ["Time", "Words", "Acts", "Loyalty"] },
+                { q: "What scares me most in relationships?", options: [] },
+                { q: "Do I believe in:", options: ["Slow burn", "Love at first sight"] },
+                { q: "What kind of energy attracts me?", options: [] },
+                { q: "When I’m nervous, I usually:", options: ["Talk less", "Joke", "Avoid eye contact"] },
+                { q: "One green flag I value a lot?", options: [] },
+                { q: "Am I more:", options: ["Romantic", "Realistic"] },
+                { q: "What ruins attraction instantly for me?", options: [] },
+                { q: "Do I open up easily?", options: ["Yes", "Only to a few"] },
+                { q: "My ideal bond feels like?", options: [] },
+                { q: "If you had to describe me in one word?", options: [] }
+            ]
+        };

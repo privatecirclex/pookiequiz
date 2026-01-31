@@ -74,7 +74,7 @@
                             </button>
                         </div>
 
-                            <div class="pt-8 opacity-50 animate-pulse">
+                            <div class="pt-8 opacity-50 animate-bounce">
                                 <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Scroll for Tea</p>
                                 <i data-lucide="chevron-down" class="mx-auto text-slate-400"></i>
                             </div>

@@ -29,11 +29,11 @@ import { applyTheme } from './helpers.js';
             } else if (existingLoader) existingLoader.remove();
 
             // Sound Toggle
-            const soundBtn = `
-                <button onclick="toggleSound()" class="fixed top-6 right-6 z-[4000] p-3 glass-panel rounded-full text-rose-400 hover:text-rose-600 hover:scale-110 transition-transform">
-                    <i data-lucide="${Sound.enabled ? 'volume-2' : 'volume-x'}" size="20"></i>
-                </button>
-            `;
+            const soundBtn = (state.view === 'create' || state.view === 'dashboard') ? '' : `
+    <button onclick="toggleSound()" class="fixed top-6 right-6 z-[4000] p-3 glass-panel rounded-full text-rose-400 hover:text-rose-600 hover:scale-110 transition-transform">
+        <i data-lucide="${Sound.enabled ? 'volume-2' : 'volume-x'}" size="20"></i>
+    </button>
+`;
 
             const html = getViewHtml(state, soundBtn);
             

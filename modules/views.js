@@ -1,5 +1,7 @@
 import { MODES } from './constants.js';
 import { getFooter } from './helpers.js';
+import { Sound } from './sound.js';
+
 
 export function getViewHtml(state, soundBtn) {
     
@@ -225,10 +227,12 @@ export function getViewHtml(state, soundBtn) {
                                 </div>
                                <div class="flex gap-2">
     <button onclick="openVibePicker()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors animate-pulse"><i data-lucide="palette" size="20"></i></button>
-    
     <button onclick="openDashboardConfirm()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="layout-dashboard" size="20"></i></button>
     <button onclick="handleLogout()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="log-out" size="20"></i></button>
+    
+    <button onclick="toggleSound()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="${Sound.enabled ? 'volume-2' : 'volume-x'}" size="20"></i></button>
 </div>
+
 
                             </div>
 
@@ -674,9 +678,11 @@ export function getViewHtml(state, soundBtn) {
                                         <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">${state.attempts.length} people played</p>
                                     </div>
                                 </div>
-                                ${state.quizId ? 
-    `<button onclick="setView('share')" class="p-3 bg-white rounded-full shadow-sm text-rose-400 hover:scale-110 transition-transform"><i data-lucide="share-2" size="20"></i></button>` 
-    : '<div class="w-10"></div>'}
+                               <div class="flex items-center gap-2 relative z-30">
+    ${state.quizId ? `<button onclick="setView('share')" class="p-3 bg-white rounded-full shadow-sm text-rose-400 hover:scale-110 transition-transform"><i data-lucide="share-2" size="20"></i></button>` : ''}
+    <button onclick="toggleSound()" class="p-3 bg-white rounded-full shadow-sm text-rose-400 hover:scale-110 transition-transform"><i data-lucide="${Sound.enabled ? 'volume-2' : 'volume-x'}" size="20"></i></button>
+</div>
+
                             </header>
                                               <div class="grid grid-cols-2 gap-4 relative z-20">
                                 <button onclick="toggleDashboardTab('plays')" class="glass-panel p-6 rounded-[2rem] text-center transition-all ${state.activeDashboardTab === 'plays' ? 'ring-4 ring-rose-200 bg-white scale-[1.02]' : 'hover:bg-white hover:scale-[1.02]'}">

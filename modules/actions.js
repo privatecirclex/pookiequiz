@@ -812,7 +812,10 @@ window.toggleMemoryDropdown = () => {
         state.isLoading = false;
         if(score === total) {
             Sound.play('success');
-            confetti({ particleCount: 150, spread: 100 });
+            try {
+                await loadScript('https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js');
+                confetti({ particleCount: 150, spread: 100 });
+            } catch(e) { console.log("Confetti skipped"); }
         } else {
             Sound.play('pop');
         }

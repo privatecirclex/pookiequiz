@@ -67,20 +67,41 @@ const startTime = Date.now();
                 }
             }, 500);
 
-// Special trick to catch them before they leave
-window.addEventListener('beforeunload', () => {
-    const durationMinutes = Math.round((Date.now() - startTime) / 60000);
+// --- SESSION END PING ---
+const sendSessionEndPing = () => {
+    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
     const WEBHOOK_URL = "https://discord.com/api/webhooks/1488114556222832761/kfPhJPBcu6HRDZTLtc6hDXtPyu1vEUqrQw0FJwiMexEVMEQgECvGIwEEm5O0MEzj0uTu"; 
-    
-    // Only ping if they stayed more than 5 seconds (filters out bots/accidental clicks)
-    if (Date.now() - startTime > 5000) {
-        navigator.sendBeacon(WEBHOOK_URL, JSON.stringify({
+
+    // Stop duplicate pings if both events fire
+    if (window.hasSentEndPing) return;
+
+    // 🔥 FILTER: Only ping if they stayed more than 15 seconds
+    if (durationSeconds > 15) {
+        window.hasSentEndPing = true; 
+        const durationMinutes = (durationSeconds / 60).toFixed(1); 
+
+        // 1. Package the data safely
+        const payload = JSON.stringify({
             embeds: [{
                 title: "⏱️ Session Ended",
-                description: `User: **${state.profile.name || 'Guest'}**\nStayed for: **${durationMinutes} mins**`,
-                color: durationMinutes > 5 ? 5763719 : 16711680 // Green if > 5 mins, Red if shorter
+                description: `User: **${state.profile?.name || 'Guest'}**\nStayed for: **${durationMinutes} mins** (${durationSeconds}s)`,
+                color: durationSeconds > 120 ? 5763719 : 16711680 
             }]
-        }));
+        });
+
+        // 2. The Magic Trick: Force it into JSON format using a Blob
+        const blob = new Blob([payload], { type: 'application/json' });
+        navigator.sendBeacon(WEBHOOK_URL, blob);
+    }
+};
+
+// Desktop: Fire when they close the tab
+window.addEventListener('beforeunload', sendSessionEndPing);
+
+// Mobile/Tablet: Fire when they swipe to the home screen or switch apps
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        sendSessionEndPing();
     }
 });
 

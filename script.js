@@ -93,34 +93,28 @@ const sendSessionSummaryPing = () => {
     }
 };
 
-// EVENT 1: Desktop/Tab Close - Fire IMMEDIATELY
+
+// EVENT 1: Desktop - Fire immediately when they completely close the tab
 window.addEventListener('beforeunload', () => {
-    // If the tab is actually closing, we don't wait for the minute timer.
-    // We send it now before the browser kills the script.
-    if (backgroundTimer) {
-        clearTimeout(backgroundTimer);
-        backgroundTimer = null;
-    }
+    if (backgroundTimer) clearTimeout(backgroundTimer); // cancel any pending background timers
     sendSessionSummaryPing();
 });
 
-// EVENT 2: Mobile/Tablet - The 1-Minute Background Rule
+// EVENT 2: Mobile/Tablet - The 15-Second Background Rule
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
-        // User swiped away or switched tabs. Start the 60-second countdown.
+        // They swiped away or switched tabs. Start the 15-second countdown.
         backgroundTimer = setTimeout(() => {
             sendSessionSummaryPing();
-        }, 60000); // 1 minute
+        }, 15000); 
     } else {
-        // User came back to the app within the minute! Cancel the countdown.
+        // They came back to the app! Cancel the countdown.
         if (backgroundTimer) {
             clearTimeout(backgroundTimer); 
             backgroundTimer = null;
         }
     }
 });
-
-
             // Interaction listener for AudioContext
            //  both click and touchstart to ensure mobile users hear the pop!
 const unlockAudio = () => {

@@ -68,23 +68,43 @@
         <div class='blob blob-2'></div>
         <div class='blob blob-3'></div>
     </div>
-                <div id="beta-popup" class="fixed inset-0 z-[9000] flex items-center justify-center bg-rose-950/40 backdrop-blur-sm p-4 transition-opacity duration-300" style="display: none;">
-        <div class="glass-panel rounded-pookie w-full max-w-md p-8 text-center animate-enter shadow-2xl border-2 border-white/50">
-            <div class="text-5xl mb-4 animate-float-slow">🎀</div>
-            <h2 class="text-2xl font-black text-[#590d22] mb-3">Welcome to Pookie Quiz!</h2>
-            <p class="text-slate-700 font-semibold mb-6 leading-relaxed">
-                Hey! I'm a solo indie dev building this in my free time. The site is still in <span class="text-rose-500 font-bold">Beta</span>, so if things get a little quirky, that's why! 🥺
-            </p>
-            <div class="flex flex-col gap-3">
-                <button id="close-beta-btn" class="btn-primary rounded-full px-6 py-3 font-bold text-lg w-full shadow-lg">
-                    Got it, let's play! 💅
-                </button>
-                <a href="mailto:hellopookiequiz@gmail.com" class="text-rose-500 font-bold text-sm mt-2 hover:text-rose-600 transition-colors">
-                    Report a bug 🐛
-                </a>
+                    <div id="beta-popup" class="fixed inset-0 z-[9000] flex items-center justify-center bg-rose-950/40 backdrop-blur-sm p-4 transition-opacity duration-300" style="display: none;">
+        <div class="glass-panel rounded-pookie w-full max-w-md p-8 text-center animate-enter shadow-2xl border-2 border-white/50 relative overflow-hidden">
+            
+            <div id="beta-welcome-view">
+                <div class="text-5xl mb-4 animate-float-slow">🎀</div>
+                <h2 class="text-2xl font-black text-[#590d22] mb-3">Welcome to Pookie Quiz!</h2>
+                <p class="text-slate-700 font-semibold mb-6 leading-relaxed">
+                    Hey! I'm a solo indie dev building this in my free time. The site is still in <span class="text-rose-500 font-bold">Beta</span>, so if things get a little quirky, that's why! 🥺
+                </p>
+                <div class="flex flex-col gap-3">
+                    <button id="close-beta-btn" class="btn-primary rounded-full px-6 py-3 font-bold text-lg w-full shadow-lg">
+                        Got it, let's play! 💅
+                    </button>
+                    <button onclick="document.getElementById('beta-welcome-view').style.display='none'; document.getElementById('beta-bug-view').style.display='block';" class="text-rose-500 font-bold text-sm mt-2 hover:text-rose-600 transition-colors">
+                        Report a bug 🐛
+                    </button>
+                </div>
             </div>
+
+            <div id="beta-bug-view" style="display: none;" class="animate-enter">
+                <div class="flex items-center gap-2 mb-4 text-left">
+                    <button onclick="document.getElementById('beta-bug-view').style.display='none'; document.getElementById('beta-welcome-view').style.display='block';" class="p-2 bg-white/50 rounded-full text-slate-400 hover:text-rose-500 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                    </button>
+                    <h2 class="text-xl font-black text-[#590d22] flex-1 text-center pr-10">Report a Bug 🐛</h2>
+                </div>
+                
+                <textarea id="popup-bug-note" class="w-full p-4 bg-white/60 rounded-xl text-sm font-bold text-slate-700 outline-none border border-transparent focus:border-rose-300 focus:bg-white transition-all resize-none mb-4 placeholder:text-slate-400" rows="3" placeholder="What's broken bestie? Tell me everything..."></textarea>
+                
+                <button onclick="submitBugReport()" id="bug-submit-btn" class="w-full py-3 bg-slate-800 text-white rounded-xl font-black text-sm shadow-md hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
+                    Send to Dev 🚀
+                </button>
+            </div>
+
         </div>
     </div>
+
     <div class='relative z-10' id='app'></div>
     <div class='fixed bottom-8 left-0 right-0 z-[10000] flex flex-col items-center pointer-events-none gap-2 px-4' id='toast-container'></div>
 

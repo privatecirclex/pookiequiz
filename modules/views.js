@@ -316,7 +316,40 @@ export function getViewHtml(state, soundBtn) {
                                     <div class="bg-rose-100 p-1 rounded-full group-hover:rotate-90 transition-transform"><i data-lucide="plus" size="16"></i></div>
                                     <span>Add Question</span>
                                 </button>
-                            </div>
+                            ${state.questions.length === 0 && !state.dismissedFeedback ? `
+<div class="bg-white/30 backdrop-blur-md p-5 rounded-[2rem] mt-6 text-center transition-all animate-enter border border-white/30 shadow-sm mx-auto w-full relative">
+    ${!state.hasRatedApp ? `
+        <h3 class="text-lg font-black text-slate-800 mb-1">Vibe Check ✨</h3>
+        <p class="text-xs font-bold text-slate-500 mb-4">Spill the tea on this app...</p>
+
+        <div class="flex justify-center gap-2 mb-4" id="feedback-stars">
+            ${[1, 2, 3, 4, 5].map(star => `
+                <button onclick="setTempRating(${star})" id="star-${star}" class="text-3xl transition-transform hover:scale-125 active:scale-95 grayscale opacity-40 drop-shadow-sm">💖</button>
+            `).join('')}
+        </div>
+
+        <textarea id="feedback-note" class="w-full p-3 bg-white/30 rounded-xl text-sm font-bold text-slate-700 outline-none border border-transparent focus:border-rose-300 focus:bg-white transition-all resize-none mb-3 placeholder:text-slate-400" rows="2" placeholder="Tell the dev what's missing... 👀"></textarea>
+
+        <button onclick="submitFeedback()" class="w-full py-3 bg-slate-800 text-white rounded-xl font-black text-sm shadow-md hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
+            Send Tea 🕊️
+        </button>
+    ` : `
+                <button onclick="dismissFeedback()" class="absolute top-2 right-2 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors bg-white/50 hover:bg-white rounded-full shadow-sm z-50 cursor-pointer touch-manipulation">
+            <i data-lucide="x" size="18"></i>
+        </button>
+
+
+        <div class="py-2 animate-float-slow">
+            <span class="text-4xl">💅</span>
+        </div>
+        <h3 class="text-lg font-black text-slate-800 mb-1">Thanks bestie!</h3>
+        <p class="text-xs font-bold text-slate-500">Your feedback went straight to the dev.</p>
+    `}
+</div>
+` : ''}
+
+
+                </div>
 
                             <div class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white/90 via-white/50 to-transparent z-20 flex justify-center pointer-events-none">
                                 <button onclick="handleShowPreview()" class="pointer-events-auto w-full max-w-md py-4 btn-primary rounded-full font-bold text-lg shadow-xl transform transition active:scale-95 flex items-center justify-center gap-2">

@@ -348,6 +348,156 @@ import { getFooter, getZodiac, applyTheme, loadScript } from './helpers.js';
     });
 };
 
+// Variable to hold the rating before they hit submit
+let currentTempRating = 0;
+
+window.setTempRating = (rating) => {
+    currentTempRating = rating;
+    Sound.play('pop');
+    
+    // Update the hearts visually without re-rendering the whole app
+    for (let i = 1; i <= 5; i++) {
+        const star = document.getElementById(`star-${i}`);
+        if (star) {
+            if (i <= rating) {
+                star.classList.remove('grayscale', 'opacity-40');
+                star.classList.add('scale-110'); // Give it a pop
+            } else {
+                star.classList.add('grayscale', 'opacity-40');
+                star.classList.remove('scale-110');
+            }
+        }
+    }
+};
+
+window.submitFeedback = async () => {
+    const noteInput = document.getElementById('feedback-note');
+    const noteText = noteInput ? noteInput.value.trim() : '';
+
+    // Prevent blank submissions
+    if (currentTempRating === 0 && !noteText) {
+        pookieAlert("Give us a rating or leave a note first! 🥺", "error");
+        return;
+    }
+
+    state.isLoading = true; 
+    state.loadingText = "Sending your tea... 🕊️"; 
+    render(); 
+
+    // 🚨 Review WEBHOOK URL HERE 🚨
+    const WEBHOOK_URL = "https://discord.com/api/webhooks/1488114556222832761/kfPhJPBcu6HRDZTLtc6hDXtPyu1vEUqrQw0FJwiMexEVMEQgECvGIwEEm5O0MEzj0uTu"; 
+
+    // Build the cute message card for Discord
+    const discordMessage = {
+        embeds: [{
+            title: "🎀 New Pookie App Review!",
+            color: 16480117, // Pookie Pink
+            fields: [
+                { name: "User", value: state.profile.name || "Anonymous", inline: true },
+                { name: "Rating", value: "💖".repeat(currentTempRating) || "No rating", inline: true },
+                { name: "The Tea ☕", value: noteText || "*No written note*" }
+            ],
+            timestamp: new Date().toISOString()
+        }]
+    };
+
+    try {
+        // Send it straight to Discord using standard web fetch (No Firebase needed!)
+        await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(discordMessage)
+        });
+
+        // Save that they rated it so the card flips to the "Thanks" view
+        state.hasRatedApp = true;
+        saveState();
+        Sound.play('success');
+
+    } catch (error) {
+        console.error("Discord error:", error);
+        pookieAlert("Couldn't send feedback! Check connection ☁️", "error");
+    } finally {
+        state.isLoading = false;
+        render(); // This officially shows the "Thanks bestie!" message
+    }
+};
+
+window.dismissFeedback = () => {
+    // 1. Tell the state to remember they closed it
+    state.dismissedFeedback = true;
+    saveState();
+    
+    // 2. Play a little pop sound for satisfying UX
+    Sound.play('pop');
+    
+    // 3. Re-render the screen to instantly remove the card
+    render();
+};
+
+window.submitBugReport = async () => {
+    const noteInput = document.getElementById('popup-bug-note');
+    const noteText = noteInput ? noteInput.value.trim() : '';
+    const btn = document.getElementById('bug-submit-btn');
+
+    if (!noteText) {
+        pookieAlert("Don't leave it blank bestie! 🥺", "error");
+        return;
+    }
+
+    // Show a loading state on the button itself
+    const originalBtnText = btn.innerHTML;
+    btn.innerHTML = `Sending... 🕊️`;
+    btn.disabled = true;
+
+    // 🚨 BUG-CHANNEL WEBHOOK URL HERE 🚨
+    const BUG_WEBHOOK_URL = "https://discord.com/api/webhooks/1488123817950974073/zMnBjem2e8fQ4trFPNWLdCFC1BLBDhzWMbAIhWvn2DkK-_mCfctjJ0s9IXe_JAqUI5EO"; 
+
+    // Build the message card for Discord (Red color for alerts)
+    const discordMessage = {
+        embeds: [{
+            title: "🚨 New Bug Report!",
+            color: 15548997, // Red/Crimson color
+            fields: [
+                { name: "User", value: state.profile?.name || "Anonymous / Guest", inline: true },
+                { name: "The Bug 🐛", value: noteText }
+            ],
+            timestamp: new Date().toISOString()
+        }]
+    };
+
+    try {
+        await fetch(BUG_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(discordMessage)
+        });
+
+        Sound.play('success');
+        pookieAlert("Bug reported! You're a lifesaver 💅", "success");
+        
+        // Clean up: Clear the box, fade out the popup, and reset the view for next time
+        noteInput.value = '';
+        const popup = document.getElementById('beta-popup');
+        popup.style.opacity = '0';
+        
+        setTimeout(() => {
+            popup.style.display = 'none';
+            document.getElementById('beta-bug-view').style.display = 'none';
+            document.getElementById('beta-welcome-view').style.display = 'block';
+            popup.style.opacity = '1'; // Reset opacity for next reload
+        }, 300);
+
+    } catch (error) {
+        console.error("Discord error:", error);
+        pookieAlert("Couldn't send report! Check connection ☁️", "error");
+    } finally {
+        // Reset the button
+        btn.innerHTML = originalBtnText;
+        btn.disabled = false;
+    }
+};
+
 
         window.removeQuestion = (i) => { 
     // 1. Lock Scroll
@@ -941,6 +1091,10 @@ window.downloadShareCard = () => {
         link.href = canvas.toDataURL('image/png');
         link.click();
         
+          // DEV GOD MODE PING
+        
+        sendGodModeAlert("🖼️ Card Downloaded!", `${state.friendName} just saved their results to their photos! 💅`, 15105570);
+        
         // 4. Reset
         btn.innerHTML = `Save Image ⬇️`;
         pookieAlert("Saved to photos! 🎀", "success");
@@ -948,6 +1102,24 @@ window.downloadShareCard = () => {
     });
 };
     
+window.sendGodModeAlert = async (title, message, color = 16480117) => {
+    const WEBHOOK_URL = "https://discord.com/api/webhooks/1488114556222832761/kfPhJPBcu6HRDZTLtc6hDXtPyu1vEUqrQw0FJwiMexEVMEQgECvGIwEEm5O0MEzj0uTu"; 
+    
+    await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            embeds: [{
+                title: title,
+                description: message,
+                color: color,
+                footer: { text: `Pookie Analytics • ${new Date().toLocaleTimeString()}` }
+            }]
+        })
+    });
+};
+
+
 window.shareFromDashboard = () => {
     // 1. Prepare the data for the card
     // We use your profile name because YOU are the creator viewing the dashboard

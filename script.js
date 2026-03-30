@@ -70,7 +70,8 @@ const startTime = Date.now();
 // --- SESSION END PING ---
 const sendSessionEndPing = () => {
     const durationSeconds = Math.round((Date.now() - startTime) / 1000);
-    const WEBHOOK_URL = "https://discord.com/api/webhooks/1488114556222832761/kfPhJPBcu6HRDZTLtc6hDXtPyu1vEUqrQw0FJwiMexEVMEQgECvGIwEEm5O0MEzj0uTu"; 
+    
+    const WEBHOOK_URL = "https://pookie-proxy.suhaibnabilone1.workers.dev/"; 
 
     // Stop duplicate pings if both events fire
     if (window.hasSentEndPing) return;
@@ -80,13 +81,16 @@ const sendSessionEndPing = () => {
         window.hasSentEndPing = true; 
         const durationMinutes = (durationSeconds / 60).toFixed(1); 
 
-        // 1. Package the data safely
+        // 1. Package the data safely for Cloudflare
         const payload = JSON.stringify({
-            embeds: [{
-                title: "⏱️ Session Ended",
-                description: `User: **${state.profile?.name || 'Guest'}**\nStayed for: **${durationMinutes} mins** (${durationSeconds}s)`,
-                color: durationSeconds > 120 ? 5763719 : 16711680 
-            }]
+            type: "general", // Tells Cloudflare to use the General webhook
+            payload: {
+                embeds: [{
+                    title: "⏱️ Session Ended",
+                    description: `User: **${state.profile?.name || 'Guest'}**\nStayed for: **${durationMinutes} mins** (${durationSeconds}s)`,
+                    color: durationSeconds > 120 ? 5763719 : 16711680 
+                }]
+            }
         });
 
         // 2. The Magic Trick: Force it into JSON format using a Blob

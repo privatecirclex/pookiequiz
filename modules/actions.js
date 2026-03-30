@@ -385,7 +385,8 @@ window.submitFeedback = async () => {
     render(); 
 
     // 🚨 Review WEBHOOK URL HERE 🚨
-    const WEBHOOK_URL = "https://discord.com/api/webhooks/1488114556222832761/kfPhJPBcu6HRDZTLtc6hDXtPyu1vEUqrQw0FJwiMexEVMEQgECvGIwEEm5O0MEzj0uTu"; 
+ const WEBHOOK_URL = "https://pookie-proxy.suhaibnabilone1.workers.dev/"; 
+
 
     // Build the cute message card for Discord
     const discordMessage = {
@@ -401,12 +402,12 @@ window.submitFeedback = async () => {
         }]
     };
 
-    try {
-        // Send it straight to Discord using standard web fetch (No Firebase needed!)
+        try {
+        // Send to Cloudflare proxy
         await fetch(WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(discordMessage)
+            body: JSON.stringify({ type: "general", payload: discordMessage })
         });
 
         // Save that they rated it so the card flips to the "Thanks" view
@@ -451,7 +452,8 @@ window.submitBugReport = async () => {
     btn.disabled = true;
 
     // 🚨 BUG-CHANNEL WEBHOOK URL HERE 🚨
-    const BUG_WEBHOOK_URL = "https://discord.com/api/webhooks/1488123817950974073/zMnBjem2e8fQ4trFPNWLdCFC1BLBDhzWMbAIhWvn2DkK-_mCfctjJ0s9IXe_JAqUI5EO"; 
+    const BUG_WEBHOOK_URL = "https://pookie-proxy.suhaibnabilone1.workers.dev/"; 
+
 
     // Build the message card for Discord (Red color for alerts)
     const discordMessage = {
@@ -467,10 +469,11 @@ window.submitBugReport = async () => {
     };
 
     try {
+        // Send to Cloudflare proxy as a bug
         await fetch(BUG_WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(discordMessage)
+            body: JSON.stringify({ type: "bug", payload: discordMessage })
         });
 
         Sound.play('success');
@@ -1103,18 +1106,21 @@ window.downloadShareCard = () => {
 };
     
 window.sendGodModeAlert = async (title, message, color = 16480117) => {
-    const WEBHOOK_URL = "https://discord.com/api/webhooks/1488114556222832761/kfPhJPBcu6HRDZTLtc6hDXtPyu1vEUqrQw0FJwiMexEVMEQgECvGIwEEm5O0MEzj0uTu"; 
+    const WEBHOOK_URL = "https://pookie-proxy.suhaibnabilone1.workers.dev/"; 
     
     await fetch(WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            embeds: [{
-                title: title,
-                description: message,
-                color: color,
-                footer: { text: `Pookie Analytics • ${new Date().toLocaleTimeString()}` }
-            }]
+            type: "general", // Tell Cloudflare to use the general vault
+            payload: {
+                embeds: [{
+                    title: title,
+                    description: message,
+                    color: color,
+                    footer: { text: `Pookie Analytics • ${new Date().toLocaleTimeString()}` }
+                }]
+            }
         })
     });
 };

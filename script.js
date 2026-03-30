@@ -60,52 +60,58 @@ const startTime = Date.now();
 
                 render();
             }
-       // Ping Discord that a new pookie has arrived
-                       setTimeout(() => {
-                if (typeof window.sendGodModeAlert === 'function') {
-                    window.sendGodModeAlert("🌟 New Session Started", "A user just landed on the home page.", 3066993);
-                }
-            }, 500);
+// --- 🌟 SMART SESSION SUMMARY PING 🌟 ---
+let backgroundTimer = null;
 
-// --- SESSION END PING ---
-const sendSessionEndPing = () => {
-    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
-    
-    const WEBHOOK_URL = "https://pookie-proxy.suhaibnabilone1.workers.dev/"; 
-
-    // Stop duplicate pings if both events fire
+const sendSessionSummaryPing = () => {
+    // Stop duplicate pings
     if (window.hasSentEndPing) return;
 
-    // 🔥 FILTER: Only ping if they stayed more than 15 seconds
-    if (durationSeconds > 15) {
+    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+    const WEBHOOK_URL = "https://pookie-proxy.suhaibnabilone1.workers.dev/"; 
+
+    // 🔥 FILTER: Only send a summary if they actually stayed on the site for at least 10 seconds total
+    if (durationSeconds > 10) {
         window.hasSentEndPing = true; 
         const durationMinutes = (durationSeconds / 60).toFixed(1); 
 
-        // 1. Package the data safely for Cloudflare
+        // 1. Package the Unified Data
         const payload = JSON.stringify({
-            type: "general", // Tells Cloudflare to use the General webhook
+            type: "general", 
             payload: {
                 embeds: [{
-                    title: "⏱️ Session Ended",
-                    description: `User: **${state.profile?.name || 'Guest'}**\nStayed for: **${durationMinutes} mins** (${durationSeconds}s)`,
+                    title: "📊 Session Summary",
+                    description: `User: **${state.profile?.name || 'Guest'}**\nTotal Time: **${durationMinutes} mins** (${durationSeconds}s)\nStatus: Left the app.`,
                     color: durationSeconds > 120 ? 5763719 : 16711680 
                 }]
             }
         });
 
-        // 2. The Magic Trick: Force it into JSON format using a Blob
+        // 2. Fire the silent background ping
         const blob = new Blob([payload], { type: 'application/json' });
         navigator.sendBeacon(WEBHOOK_URL, blob);
     }
 };
 
-// Desktop: Fire when they close the tab
-window.addEventListener('beforeunload', sendSessionEndPing);
+// EVENT 1: Desktop - Fire immediately when they completely close the tab
+window.addEventListener('beforeunload', () => {
+    if (backgroundTimer) clearTimeout(backgroundTimer); // cancel any pending background timers
+    sendSessionSummaryPing();
+});
 
-// Mobile/Tablet: Fire when they swipe to the home screen or switch apps
+// EVENT 2: Mobile/Tablet - The 15-Second Background Rule
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
-        sendSessionEndPing();
+        // They swiped away or switched tabs. Start the 15-second countdown.
+        backgroundTimer = setTimeout(() => {
+            sendSessionSummaryPing();
+        }, 15000); 
+    } else {
+        // They came back to the app! Cancel the countdown.
+        if (backgroundTimer) {
+            clearTimeout(backgroundTimer); 
+            backgroundTimer = null;
+        }
     }
 });
 

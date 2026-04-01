@@ -424,6 +424,15 @@ window.submitFeedback = async () => {
     }
 };
 
+window.dismissDashboardToaster = (e) => {
+    if (e) e.stopPropagation(); // Stops them from accidentally clicking the dashboard button behind it
+    state.dismissedDashboardToaster = true;
+    saveState();
+    Sound.play('pop'); // A satisfying little click sound
+    render();
+};
+
+
 window.dismissFeedback = () => {
     // 1. Tell the state to remember they closed it
     state.dismissedFeedback = true;

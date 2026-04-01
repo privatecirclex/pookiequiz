@@ -227,8 +227,41 @@ export function getViewHtml(state, soundBtn) {
                                 </div>
                                <div class="flex gap-2">
     <button onclick="openVibePicker()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors animate-pulse"><i data-lucide="palette" size="20"></i></button>
-    <button onclick="openDashboardConfirm()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="layout-dashboard" size="20"></i></button>
-    <button onclick="handleLogout()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="log-out" size="20"></i></button>
+    <div class="relative z-50">
+    <button onclick="openDashboardConfirm()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors relative z-10">
+        <i data-lucide="layout-dashboard" size="20"></i>
+    </button>
+    
+    ${!state.dismissedDashboardToaster ? `
+    <style>
+        @keyframes pop-in-delay {
+            0% { opacity: 0; transform: scale(0.8) translateY(-5px); visibility: hidden; }
+            1% { visibility: visible; }
+            100% { opacity: 1; transform: scale(1) translateY(0); visibility: visible; }
+        }
+        @keyframes gentle-wobble {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-3deg); }
+            75% { transform: rotate(3deg); }
+        }
+        .pookie-toaster {
+            visibility: hidden; /* Keeps it unclickable for the first 3s */
+            animation: 
+                pop-in-delay 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) 3s forwards, 
+                gentle-wobble 2.5s ease-in-out 3.3s infinite;
+        }
+    </style>
+
+    <div class="absolute top-full right-0 mt-2 w-max p-1.5 pl-2.5 bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest rounded-lg shadow-lg flex items-center gap-2 pookie-toaster" style="animation-fill-mode: forwards;">
+        <span>Quiz Results 🧾</span>
+        <button onclick="dismissDashboardToaster(event)" class="bg-slate-600 hover:bg-rose-500 text-white p-0.5 rounded-full transition-colors pointer-events-auto">
+            <i data-lucide="x" size="10"></i>
+        </button>
+        <div class="absolute -top-1 right-3 w-2 h-2 bg-slate-800 transform rotate-45 -z-10"></div>
+    </div>
+    ` : ''}
+</div>
+ <button onclick="handleLogout()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="log-out" size="20"></i></button>
     
     <button onclick="toggleSound()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="${Sound.enabled ? 'volume-2' : 'volume-x'}" size="20"></i></button>
 </div>
@@ -319,8 +352,8 @@ export function getViewHtml(state, soundBtn) {
                             ${state.questions.length === 0 && !state.dismissedFeedback ? `
 <div class="bg-white/30 backdrop-blur-md p-5 rounded-[2rem] mt-6 text-center transition-all animate-enter border border-white/30 shadow-sm mx-auto w-full relative">
     ${!state.hasRatedApp ? `
-        <h3 class="text-lg font-black text-slate-800 mb-1">Vibe Check ✨</h3>
-        <p class="text-xs font-bold text-slate-500 mb-4">Spill the tea on this app...</p>
+        <h3 class="text-lg font-black text-slate-800 mb-1">Feedback ✨</h3>
+        <p class="text-xs font-bold text-slate-500 mb-4">Spill the tea on this app...</br> It helps us a lot </p>
 
         <div class="flex justify-center gap-2 mb-4" id="feedback-stars">
             ${[1, 2, 3, 4, 5].map(star => `

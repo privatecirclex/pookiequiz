@@ -212,6 +212,22 @@ export function getViewHtml(state, soundBtn) {
                     </div>`;
                     break;
                                 case 'create':
+                    // --- NEW: 6-Hour Smart Banner Logic ---
+                    let showLiveBanner = false;
+                    let activeQuizCount = 0;
+                    
+                    if (state.quizHistory && state.quizHistory.length > 0 && !state.dismissedLiveBanner) {
+                        // Calculate the exact time 6 hours ago
+                        const sixHoursAgo = Date.now() - (6 * 60 * 60 * 1000); 
+                        
+                        // Only count quizzes that were created AFTER that cutoff time
+                        const recentQuizzes = state.quizHistory.filter(q => new Date(q.timestamp || 0).getTime() > sixHoursAgo);
+                        activeQuizCount = recentQuizzes.length;
+                        
+                        // If there is at least 1 recent quiz, show the banner
+                        if (activeQuizCount > 0) showLiveBanner = true;
+                    }
+
                     html = `
                     <div class="no-scroll p-4 items-center">
                         <div class="w-full max-w-md flex flex-col h-full relative z-10 pb-28">
@@ -230,9 +246,15 @@ export function getViewHtml(state, soundBtn) {
     <div class="relative z-50">
     <button onclick="openDashboardConfirm()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors relative z-10">
         <i data-lucide="layout-dashboard" size="20"></i>
+        ${state.unreadAttempts > 0 ? `<div class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full border-2 border-white shadow-[0_0_8px_rgba(244,63,94,0.6)] flex items-center justify-center text-[9px] font-black text-white animate-pulse">${state.unreadAttempts}</div>` : ''}
     </button>
     
-    ${!state.dismissedDashboardToaster ? `
+    ${state.showNewAttemptToaster ? `
+    <div class="absolute top-full right-0 mt-2 w-max p-2 pl-3 pr-4 bg-gradient-to-r from-rose-500 to-purple-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-[0_4px_15px_rgba(244,63,94,0.4)] flex items-center gap-2 animate-bounce z-50">
+        <span>Someone attempted your quiz! 👀</span>
+        <div class="absolute -top-1 right-3 w-3 h-3 bg-rose-500 transform rotate-45 -z-10"></div>
+    </div>
+    ` : (!state.dismissedDashboardToaster ? `
     <style>
         @keyframes pop-in-delay {
             0% { opacity: 0; transform: scale(0.8) translateY(-5px); visibility: hidden; }
@@ -259,8 +281,9 @@ export function getViewHtml(state, soundBtn) {
         </button>
         <div class="absolute -top-1 right-3 w-2 h-2 bg-slate-800 transform rotate-45 -z-10"></div>
     </div>
-    ` : ''}
+    ` : '')}
 </div>
+
  <button onclick="handleLogout()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="log-out" size="20"></i></button>
     
     <button onclick="toggleSound()" class="p-2.5 bg-white/50 hover:bg-white rounded-full text-rose-400 transition-colors"><i data-lucide="${Sound.enabled ? 'volume-2' : 'volume-x'}" size="20"></i></button>
@@ -279,7 +302,30 @@ export function getViewHtml(state, soundBtn) {
                                 `).join('')}
                             </div>
 
-                                                        <div class="flex-1 space-y-5">
+                            ${showLiveBanner ? `
+                            <div class="mb-6 bg-emerald-50/90 backdrop-blur-sm border border-emerald-200 rounded-2xl p-4 flex items-center justify-between shadow-sm relative overflow-hidden group">
+                                <div class="absolute -right-4 -top-4 w-16 h-16 bg-emerald-400 rounded-full blur-2xl opacity-10 group-hover:opacity-20 transition-opacity"></div>
+                                <div class="flex items-center gap-3 relative z-10">
+                                    <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-50">
+                                        <i data-lucide="radio" size="16" class="animate-pulse"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <p class="text-[11px] font-black text-emerald-700 uppercase tracking-widest leading-tight">${activeQuizCount} ${activeQuizCount === 1 ? 'Quiz is' : 'Quizzes are'} Live ✨</p>
+                                        <p class="text-[10px] font-bold text-slate-500 mt-0.5">Saved in memory box</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 relative z-10">
+                                    <button onclick="openDashboardConfirm()" class="px-3 py-1.5 bg-white text-emerald-600 text-[10px] font-black rounded-full shadow-sm hover:scale-105 transition-transform border border-emerald-100 flex items-center gap-1">
+                                        <span>Dash</span> <i data-lucide="arrow-right" size="10"></i>
+                                    </button>
+                                    <button onclick="dismissLiveBanner()" class="p-1.5 bg-emerald-100/50 hover:bg-emerald-200 text-emerald-600 rounded-full transition-colors">
+                                        <i data-lucide="x" size="12"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            <div class="flex-1 space-y-5">
                                 
 
                                 <div class="text-center px-4">
@@ -498,7 +544,7 @@ export function getViewHtml(state, soundBtn) {
                             
                             <div class="flex gap-3 mt-6 justify-center">
                                 <button onclick="openDashboardConfirm()" class="py-3 px-6 bg-white/70 backdrop-blur text-slate-600 rounded-2xl font-black text-xs shadow-sm border border-white hover:bg-white transition-all">View Dashboard</button>
-                                <button onclick="handleStartOwnQuiz()" class="py-3 px-6 bg-rose-400 text-white rounded-2xl font-black text-xs shadow-md hover:bg-rose-500 transition-all">New Quiz</button>
+                                <button onclick="handleHomeClick()" class="py-3 px-6 bg-rose-400 text-white rounded-2xl font-black text-xs shadow-md hover:bg-rose-500 transition-all">Home 🏠</button>
                             </div>
                         </div>
                         ${soundBtn}
@@ -506,11 +552,24 @@ export function getViewHtml(state, soundBtn) {
                     break;
                                 case 'attempt':
                     if (state.attemptResult) {
-                        // --- RESULT SCREEN (Unchanged) ---
+                        // --- RESULT SCREEN ---
                         const score = state.attemptResult.score;
                         const total = state.attemptResult.total;
                         const percent = (score/total)*100;
-                        const reaction = percent === 100 ? "Soulmates! 💍" : percent > 50 ? "Bestie Vibes ✨" : "Fake Friend? 💀";
+                        
+                         const seed = (state.friendName ? state.friendName.length : 0) + score;
+                        
+                        let reaction = "";
+                        if (percent === 100) {
+                            const perfect = ["Realest One 💯", "Locked In 🤝", "Knows The Lore 📚", "Elite Status 👑", "No Lies Detected 🎯"];
+                            reaction = perfect[seed % perfect.length];
+                        } else if (percent > 50) {
+                            const good = ["Valid effort 👍", "Passed the Vibe Check ✨", "Solid Friend 🤝", "Knows Enough 🍵", "Not Bad tbh 👀"];
+                            reaction = good[seed % good.length];
+                        } else {
+                            const bad = ["Fraud Alert 🚨", "Who is this stranger? 💀", "Caught lacking 📸", "Bombastic Side Eye 😒", "Oof... 📉"];
+                            reaction = bad[seed % bad.length];
+                        }
                         
                                                const reviewHtml = state.activeQuiz.questions.map((q, i) => {
                             const userAns = state.friendAnswers[i] || "Skipped";

@@ -10,6 +10,52 @@ import { getFooter, getZodiac, applyTheme, loadScript } from './helpers.js';
 
 
 // --- ACTIONS ---
+        // ---- Real-Time Creator Notifications ---
+        window.startCreatorNotificationListener = () => {
+            if (!state.quizId) return; // Only listen if they actually have a published quiz
+            if (state.creatorNotifUnsubscribe) return; // Don't run multiple listeners
+
+            state.creatorNotifUnsubscribe = onSnapshot(doc(db, "quizzes", state.quizId), (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const totalAttempts = data.attempts ? data.attempts.length : 0;
+                    
+                    // Initialize if they've never seen any attempts before
+                    if (state.lastSeenAttempts === undefined) {
+                        state.lastSeenAttempts = totalAttempts;
+                    }
+
+                    // Did the number of attempts go up?
+                    if (totalAttempts > state.lastSeenAttempts) {
+                        state.unreadAttempts = totalAttempts - state.lastSeenAttempts;
+                        
+                        // Show the Toaster if on 'create' page AND it's their first time seeing the toaster
+                        if (state.view === 'create' && !state.hasSeenRealtimeToaster) {
+                            state.hasSeenRealtimeToaster = true; // One-time only!
+                            
+                            // 1. Nuke the old "Quiz Results" tutorial toaster so they don't overlap
+                            state.dismissedDashboardToaster = true; 
+                            
+                            // 2. Show the new dynamic toaster
+                            state.showNewAttemptToaster = true;
+                            Sound.play('success'); // Satisfying ping!
+                            render();
+                            
+                            // 3. Hide it after 4.5 seconds
+                            setTimeout(() => {
+                                state.showNewAttemptToaster = false;
+                                render();
+                            }, 4500);
+                        } else {
+                            // If they already saw the toaster, just update the red glowing dot
+                            render(); 
+                        }
+                        saveState();
+                    }
+                }
+            });
+        };
+
                 window.openLegal = (v) => {
             if (!['about', 'terms', 'privacy', 'contact'].includes(state.view)) {
                 state.previousView = state.view; 
@@ -744,6 +790,9 @@ try {
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         } catch(e) { console.log("Confetti skipped"); }
 
+        // --- NEW: Start listening for incoming attempts immediately! ---
+        window.startCreatorNotificationListener();
+
         state.isLoading = false; 
         Sound.play('success'); 
         setView('share');
@@ -759,7 +808,37 @@ try {
 
 
         window.copyLink = () => {
+            state.hasCopiedLink = true; // Tell the app they copied it!
             navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?q=${state.quizId}`).then(() => pookieAlert("Link copied! 💌", "success"));
+        };
+
+        // --- NEW: Safe Home Navigation ---
+        window.handleHomeClick = () => {
+            if (!state.hasCopiedLink && state.quizId) {
+                // Show our custom beautifully styled modal instead of the browser alert
+                state.showHomeConfirm = true;
+                Sound.play('error'); // Play a gentle alert sound
+                render();
+            } else {
+                // If they already copied it, just go home instantly
+                window.handleStartOwnQuiz();
+            }
+        };
+
+        window.confirmHomeAndCopy = () => {
+            state.showHomeConfirm = false;
+            window.copyLink();
+            setTimeout(() => { window.handleStartOwnQuiz(); }, 800);
+        };
+
+        window.cancelHome = () => {
+            state.showHomeConfirm = false;
+            render();
+        };
+        
+        window.forceHomeWithoutCopy = () => {
+            state.showHomeConfirm = false;
+            window.handleStartOwnQuiz();
         };
 
         window.handleStartOwnQuiz = () => {
@@ -783,9 +862,20 @@ try {
         }
     }
 
-    // Reset state for the new quiz
-    state.questions = []; 
+    // Clean up old listener before resetting
+    if (state.creatorNotifUnsubscribe) {
+        state.creatorNotifUnsubscribe();
+        state.creatorNotifUnsubscribe = null;
+    }
+
+            
+      state.questions = []; 
     state.friendAnswers = []; 
+    state.lastSeenAttempts = 0;
+    state.unreadAttempts = 0;
+    state.hasSeenRealtimeToaster = false;
+    state.hasCopiedLink = false; 
+    state.dismissedLiveBanner = false;
     state.attemptResult = null; 
     state.activeQuiz = null;
     state.quizId = null; 
@@ -818,6 +908,15 @@ try {
             const originView = state.view;
             state.isLoading = true; 
             state.loadingText = "Retrieving your tea... ☕️"; 
+            
+            // --- NEW: Clear Notifications ---
+            state.showNewAttemptToaster = false;
+            if (state.unreadAttempts > 0) {
+                state.lastSeenAttempts += state.unreadAttempts;
+                state.unreadAttempts = 0;
+                saveState();
+            }
+            
             render();
             
             // --- FIX: Fetch Permanent History from Database ---
@@ -908,6 +1007,7 @@ window.toggleMemoryDropdown = () => {
             state.friendName = el.value.trim();
             state.friendAnswers = new Array(state.activeQuiz.questions.length).fill('');
             state.attemptTimers = [];
+            state.currentQuestionIndex = 0; 
             Sound.play('pop'); render();
         };
 
@@ -931,6 +1031,7 @@ window.toggleMemoryDropdown = () => {
     state.friendName = '';
     state.friendAnswers = [];
     state.attemptResult = null;
+    state.currentQuestionIndex = 0; 
     Sound.play('pop');
     render();
     window.scrollTo(0,0);
@@ -1175,6 +1276,13 @@ window.shareFromMemory = () => {
             render();
         };
     
+                window.dismissLiveBanner = () => {
+            state.dismissedLiveBanner = true;
+            saveState();
+            Sound.play('pop');
+            render();
+        };
+
 
     window.openVibePicker = () => { state.showVibePicker = true; render(); };
 window.closeVibePicker = () => { state.showVibePicker = false; render(); };

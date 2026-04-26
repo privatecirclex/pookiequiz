@@ -80,6 +80,32 @@ export function renderModals(root, state) {
                 </div>`;
                 root.appendChild(modal);
             }
+
+            // --- NEW: Custom Home Navigation Alert Modal ---
+            if (state.showHomeConfirm) {
+                const modal = document.createElement('div');
+                modal.className = "fixed inset-0 z-[9000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-6";
+                modal.innerHTML = `
+                <div class="glass-panel rounded-[2rem] p-8 w-full max-w-xs text-center shadow-2xl animate-enter border-2 border-white">
+                    <div class="text-5xl mb-4 animate-bounce">🥺</div>
+                    <h2 class="text-2xl font-black text-slate-800 mb-2">Wait!</h2>
+                    <p class="text-slate-500 font-bold text-sm mb-6">You haven't copied your link yet. Your friends can't play if you don't share it!</p>
+                    <div class="space-y-3">
+                        <button onclick="confirmHomeAndCopy()" class="w-full py-3 btn-primary rounded-xl font-bold shadow-lg flex items-center justify-center gap-2">
+                            <i data-lucide="copy" size="16"></i> Copy & Go Home
+                        </button>
+                        <button onclick="cancelHome()" class="w-full py-3 bg-white text-slate-500 rounded-xl font-bold hover:bg-slate-50 border border-slate-100">
+                            Stay Here
+                        </button>
+                    </div>
+                    <button onclick="forceHomeWithoutCopy()" class="mt-4 text-[10px] font-black text-rose-400 uppercase tracking-widest hover:text-rose-500 underline underline-offset-2 transition-colors">
+                        I don't care, just go home
+                    </button>
+                </div>`;
+                root.appendChild(modal);
+                lucide.createIcons();
+            }
+
         // Template Modal
             if (state.showTemplateModal) {
                 const templates = QUIZ_TEMPLATES[state.selectedMode] || [];
@@ -213,28 +239,85 @@ if (state.showShareCard && state.attemptResult) {
     const total = state.attemptResult.total;
     const percent = (score/total)*100;
     
-    // Dynamic vibe check text
-        // --- ROAST LOGIC START ---
+     const seed = (state.friendName ? state.friendName.length : 0) + score;
+
     let vibeText = "";
     let roastText = "";
 
-    if (percent === 100) {
-        vibeText = "SOULMATE STATUS 💍";
-        roastText = "Is this obsession? (Yes)";
-    } else if (percent >= 80) {
-        vibeText = "BESTIE TIER 💖";
-        roastText = "You actually listen to me 🥹";
-    } else if (percent >= 50) {
-        vibeText = "MID TIER POOKIE 😐";
-        roastText = "Do better next time 💅";
-    } else if (percent >= 20) {
-        vibeText = "FAKE FRIEND 🚨";
-        roastText = "The audacity to score this low 💀";
-    } else {
-        vibeText = "TOTAL STRANGER 🤡";
-        roastText = "Who even are you?";
+    // 1. The Lazy Creator Tier (Less than 3 questions)
+    if (total < 3) {
+        const shortTitles = ["LAZY CREATOR 🥱", "MICROSCOPIC QUIZ 🔬", "ZERO EFFORT 📉"];
+        vibeText = shortTitles[seed % shortTitles.length];
+        
+        const shortRoasts = [
+            "A 2-question quiz? bffr.",
+            "Creator was too lazy to type, you still failed.",
+            "Statistically useless vibe check.",
+            "Y'all call this a test?",
+            "0 effort from the creator. 0 effort from the player."
+        ];
+        roastText = shortRoasts[seed % shortRoasts.length];
+    } 
+    // Standard Dynamic Logic for real quizzes
+    else {
+        // 2. The Elite Tier (100%)
+        if (percent === 100) {
+            const titles = ["FLAWLESS VICTORY 🏆", "ELITE TIER 💎", "SOULMATE DETECTED 🎯"];
+            vibeText = titles[seed % titles.length];
+            
+            const roasts = [
+                "Certified Lore Master 📚",
+                "No Lies Detected 🎯",
+                "Actually Locked In 🤝",
+                "Understands the Assignment 📝",
+                "Immaculate Aura ✨",
+                "Front Row Seat to the Drama 🍿",
+                "The Blueprint 📐",
+                "0% Fraud 💯",
+                "Top 1% Pookie 📈",
+                "No Notes. 🤌"
+            ];
+            roastText = roasts[seed % roasts.length];
+        } 
+        // 3. The Mid Tier (> 50%)
+        else if (percent > 50) {
+            const titles = ["AVERAGE RUN 🏃", "MID TIER 😐", "PASSABLE 📉"];
+            vibeText = titles[seed % titles.length];
+            
+            const roasts = [
+                "Knows the basics, ignores the rest. 🤷",
+                "Part-time associate. 🤝",
+                "Skips the cutscenes. 🎮",
+                "Valid, but on thin ice. 🧊",
+                "Passable effort. 👍",
+                "We speak occasionally. 🗣️",
+                "Solid B-tier friend. 📊",
+                "Needs to study the lore more. 📖",
+                "Not a stranger, not a VIP. 🎫",
+                "Survived the vibe check. Barely. 😅"
+            ];
+            roastText = roasts[seed % roasts.length];
+        } 
+        // 4. The Fraud Tier (< 50%)
+        else {
+            const titles = ["FRAUD ALERT 🚨", "EMBARRASSING 💀", "NEGATIVE AURA 📉"];
+            vibeText = titles[seed % titles.length];
+            
+            const roasts = [
+                "Who are you? 💀",
+                "Negative Aura 📉",
+                "Unfollowed and Blocked 🚫",
+                "Caught Lacking 📸",
+                "Stranger Danger 🚨",
+                "NPC Energy 🤖",
+                "Please delete my number 📱",
+                "Did we even meet? 🤨",
+                "Absolute disaster class 🗑️",
+                "Pack it up 📦"
+            ];
+            roastText = roasts[seed % roasts.length];
+        }
     }
-    // --- ROAST LOGIC END ---
     
     const modal = document.createElement('div');
     modal.className = "fixed inset-0 z-[9000] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6";

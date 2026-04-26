@@ -21,15 +21,49 @@ import { getFooter, getZodiac, applyTheme, loadScript } from './helpers.js';
                     const totalAttempts = data.attempts ? data.attempts.length : 0;
                     
                     // Initialize if they've never seen any attempts before
-                    if (state.lastSeenAttempts === undefined) {
+                    if (state.lastSeenAttempts === undefined || state.lastSeenAttempts === null) {
                         state.lastSeenAttempts = totalAttempts;
                     }
 
                     // Did the number of attempts go up?
                     if (totalAttempts > state.lastSeenAttempts) {
+                        
+                        // FIX: If they are actively staring at the Dashboard, they see it! No dot needed.
+                        if (state.view === 'dashboard') {
+                            state.lastSeenAttempts = totalAttempts;
+                            state.unreadAttempts = 0;
+                            saveState();
+                            return; 
+                        }
+
                         state.unreadAttempts = totalAttempts - state.lastSeenAttempts;
                         
                         // Show the Toaster if on 'create' page AND it's their first time seeing the toaster
+                        if (state.view === 'create' && !state.hasSeenRealtimeToaster) {
+                            state.hasSeenRealtimeToaster = true; // One-time only!
+                            
+                            // 1. Nuke the old "Quiz Results" tutorial toaster so they don't overlap
+                            state.dismissedDashboardToaster = true; 
+                            
+                            // 2. Show the new dynamic toaster
+                            state.showNewAttemptToaster = true;
+                            Sound.play('success'); // Satisfying ping!
+                            render();
+                            
+                            // 3. Hide it after 4.5 seconds
+                            setTimeout(() => {
+                                state.showNewAttemptToaster = false;
+                                render();
+                            }, 4500);
+                        } else {
+                            // If they already saw the toaster, just update the red glowing dot
+                            render(); 
+                        }
+                        saveState();
+                    }
+                }
+            });
+        };
                         if (state.view === 'create' && !state.hasSeenRealtimeToaster) {
                             state.hasSeenRealtimeToaster = true; // One-time only!
                             

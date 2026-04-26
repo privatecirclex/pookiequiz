@@ -64,31 +64,6 @@ import { getFooter, getZodiac, applyTheme, loadScript } from './helpers.js';
                 }
             });
         };
-                        if (state.view === 'create' && !state.hasSeenRealtimeToaster) {
-                            state.hasSeenRealtimeToaster = true; // One-time only!
-                            
-                            // 1. Nuke the old "Quiz Results" tutorial toaster so they don't overlap
-                            state.dismissedDashboardToaster = true; 
-                            
-                            // 2. Show the new dynamic toaster
-                            state.showNewAttemptToaster = true;
-                            Sound.play('success'); // Satisfying ping!
-                            render();
-                            
-                            // 3. Hide it after 4.5 seconds
-                            setTimeout(() => {
-                                state.showNewAttemptToaster = false;
-                                render();
-                            }, 4500);
-                        } else {
-                            // If they already saw the toaster, just update the red glowing dot
-                            render(); 
-                        }
-                        saveState();
-                    }
-                }
-            });
-        };
 
                 window.openLegal = (v) => {
             if (!['about', 'terms', 'privacy', 'contact'].includes(state.view)) {

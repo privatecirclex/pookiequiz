@@ -1,5 +1,5 @@
-        ‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌‌@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&amp;display=swap');
-        :root {
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  :root {
     /* Default Vibe: Lovecore (Pink/Red) */
     --bg-color: #ffe6eb;
     --card-bg: #ffffff;
@@ -31,6 +31,8 @@
             z-index: -1;
             opacity: 0.6;
             animation: float 20s infinite ease-in-out;
+            will-change: transform; 
+            backface-visibility: hidden; 
         }
         .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #fbcfe8; animation-delay: 0s; }
         .blob-2 { bottom: -10%; right: -10%; width: 400px; height: 400px; background: #fda4af; animation-delay: -5s; }

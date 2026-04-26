@@ -153,16 +153,19 @@
   })();
 </script>
 <script>
-  // 🚧 BETA POPUP LOGIC (SHOWS EVERY TIME) 🚧
+  // 🚧 BETA POPUP LOGIC (SHOWS ONCE PER USER) 🚧
   document.addEventListener("DOMContentLoaded", () => {
       const popup = document.getElementById("beta-popup");
       const closeBtn = document.getElementById("close-beta-btn");
 
-      // 1. Always show the popup when the page loads
-      popup.style.display = "flex"; 
+      // 1. Check browser memory to see if they already clicked "Got it"
+      if (!localStorage.getItem('pookie_beta_seen')) {
+          popup.style.display = "flex"; 
+      }
 
-      // 2. When they click the button, hide it
+      // 2. When they click the button, hide it and save to memory
       closeBtn.addEventListener("click", () => {
+          localStorage.setItem('pookie_beta_seen', 'true'); // Save their choice
           popup.style.opacity = "0"; // Smooth fade out
           
           setTimeout(() => {

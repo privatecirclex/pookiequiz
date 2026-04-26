@@ -46,7 +46,7 @@ const startTime = Date.now();
                     render();
                 }
       } else {
-                // FIX: Intelligent Redirect on Reload
+                
                 if (state.profileCompleted) {
                     // 1. If we have a finished quiz (ID exists), default to SHARE to hide old questions
                     if (state.quizId && !['create', 'share', 'dashboard'].includes(state.view)) {
@@ -56,6 +56,11 @@ const startTime = Date.now();
                     else if (!['create', 'share', 'dashboard'].includes(state.view)) {
                         state.view = 'create';
                     }
+                }
+
+                // --- FIX: Boot up the listener if they already have a live quiz! ---
+                if (state.quizId && window.startCreatorNotificationListener) {
+                    window.startCreatorNotificationListener();
                 }
 
                 render();

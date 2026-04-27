@@ -12,57 +12,102 @@ import { getFooter, getZodiac, applyTheme, loadScript } from './helpers.js';
 // --- ACTIONS ---
         // ---- Real-Time Creator Notifications ---
         window.startCreatorNotificationListener = () => {
-            if (!state.quizId) return; // Only listen if they actually have a published quiz
-            if (state.creatorNotifUnsubscribe) return; // Don't run multiple listeners
+            // 1. Gather EVERY quiz ID we know about (Active + Pending + Memory Box)
+            const knownIds = [];
+            if (state.quizId) knownIds.push(state.quizId);
+            if (state.pendingArchive) knownIds.push(state.pendingArchive.id);
+            if (state.quizHistory) state.quizHistory.forEach(q => knownIds.push(q.id));
+            
+            // Filter out duplicates and blank entries
+            const uniqueIds = [...new Set(knownIds)].filter(id => id);
+            
+            if (uniqueIds.length === 0) return; 
 
-            state.creatorNotifUnsubscribe = onSnapshot(doc(db, "quizzes", state.quizId), (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const totalAttempts = data.attempts ? data.attempts.length : 0;
-                    
-                    // Initialize if they've never seen any attempts before
-                    if (state.lastSeenAttempts === undefined || state.lastSeenAttempts === null) {
-                        state.lastSeenAttempts = totalAttempts;
+            // Prevent duplicate listeners from stacking
+            if (state.creatorNotifUnsubscribe) {
+                state.creatorNotifUnsubscribe();
+            }
+
+            // We need a dictionary to keep track of attempts PER quiz so they add up correctly
+            if (!state.quizAttemptCounts) state.quizAttemptCounts = {};
+
+            // FIX TRAP A: Pre-fill dictionary from local memory so async Firebase loads don't cause false spikes
+            uniqueIds.forEach(id => {
+                if (state.quizAttemptCounts[id] === undefined) {
+                    let knownCount = 0;
+                    if (state.quizHistory) {
+                        const past = state.quizHistory.find(q => q.id === id);
+                        if (past && past.attempts) knownCount = past.attempts.length;
                     }
-
-                    // Did the number of attempts go up?
-                    if (totalAttempts > state.lastSeenAttempts) {
-                        
-                        // FIX: If they are actively staring at the Dashboard, they see it! No dot needed.
-                        if (state.view === 'dashboard') {
-                            state.lastSeenAttempts = totalAttempts;
-                            state.unreadAttempts = 0;
-                            saveState();
-                            return; 
-                        }
-
-                        state.unreadAttempts = totalAttempts - state.lastSeenAttempts;
-                        
-                        // Show the Toaster if on 'create' page AND it's their first time seeing the toaster
-                        if (state.view === 'create' && !state.hasSeenRealtimeToaster) {
-                            state.hasSeenRealtimeToaster = true; // One-time only!
-                            
-                            // 1. Nuke the old "Quiz Results" tutorial toaster so they don't overlap
-                            state.dismissedDashboardToaster = true; 
-                            
-                            // 2. Show the new dynamic toaster
-                            state.showNewAttemptToaster = true;
-                            Sound.play('success'); // Satisfying ping!
-                            render();
-                            
-                            // 3. Hide it after 4.5 seconds
-                            setTimeout(() => {
-                                state.showNewAttemptToaster = false;
-                                render();
-                            }, 4500);
-                        } else {
-                            // If they already saw the toaster, just update the red glowing dot
-                            render(); 
-                        }
-                        saveState();
+                    if (state.pendingArchive && state.pendingArchive.id === id && state.pendingArchive.attempts) {
+                        knownCount = state.pendingArchive.attempts.length;
                     }
+                    if (state.quizId === id && state.attempts) {
+                        knownCount = state.attempts.length;
+                    }
+                    state.quizAttemptCounts[id] = knownCount;
                 }
             });
+
+            // FIX TRAP B: Recalibrate baseline if it got corrupted by the old "Wipe" bug
+            const trueLocalTotal = Object.values(state.quizAttemptCounts).reduce((a, b) => a + b, 0);
+            if (state.lastSeenAttempts === undefined || state.lastSeenAttempts === null || state.lastSeenAttempts < trueLocalTotal) {
+                state.lastSeenAttempts = trueLocalTotal;
+            }
+
+            const unsubs = []; // Store all individual quiz listeners here
+
+            uniqueIds.forEach(id => {
+                const unsub = onSnapshot(doc(db, "quizzes", id), (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        
+                        // Update the count for THIS specific quiz
+                        state.quizAttemptCounts[id] = data.attempts ? data.attempts.length : 0;
+                        
+                        // Calculate the grand total of attempts across ALL quizzes
+                        const totalAttempts = Object.values(state.quizAttemptCounts).reduce((a, b) => a + b, 0);
+
+                        // Did the grand total go up?
+                        if (totalAttempts > state.lastSeenAttempts) {
+                            
+                            // If they are actively staring at the Dashboard, they see it! No dot needed.
+                            if (state.view === 'dashboard') {
+                                state.lastSeenAttempts = totalAttempts;
+                                state.unreadAttempts = 0;
+                                saveState();
+                                return; 
+                            }
+
+                            state.unreadAttempts = totalAttempts - state.lastSeenAttempts;
+                            
+                            // Show the Toaster if on 'create' page AND it's their first time seeing the toaster
+                            if (state.view === 'create' && !state.hasSeenRealtimeToaster) {
+                                state.hasSeenRealtimeToaster = true; // One-time only!
+                                state.dismissedDashboardToaster = true; 
+                                state.showNewAttemptToaster = true;
+                                Sound.play('success'); 
+                                render();
+                                
+                                setTimeout(() => {
+                                    state.showNewAttemptToaster = false;
+                                    render();
+                                }, 4500);
+                            } else {
+                                // Update the red glowing dot
+                                render(); 
+                            }
+                            saveState();
+                        }
+                    }
+                });
+                unsubs.push(unsub);
+            });
+
+            // Create a master unsubscribe function that kills ALL the listeners at once
+            state.creatorNotifUnsubscribe = () => {
+                unsubs.forEach(fn => fn());
+            };
         };
 
                 window.openLegal = (v) => {
@@ -225,9 +270,17 @@ import { getFooter, getZodiac, applyTheme, loadScript } from './helpers.js';
 
 
         window.handleExitQuiz = () => {
-            if(confirm("Exit? You'll lose your progress! 🥺")) {
-                setView('landing');
-            }
+            state.showExitConfirm = true;
+            Sound.play('error');
+            render();
+        };
+        window.confirmExitQuiz = () => {
+            state.showExitConfirm = false;
+            setView('landing');
+        };
+        window.cancelExitQuiz = () => {
+            state.showExitConfirm = false;
+            render();
         };
 
 
@@ -265,14 +318,19 @@ import { getFooter, getZodiac, applyTheme, loadScript } from './helpers.js';
 };
 
         window.handleLogout = () => { 
-    // FIX: Warn guests that logout = delete data
-    const msg = state.userEmail ? "Really log out? 🥺" : "⚠️ WAIT! As a Guest, logging out will DELETE your history & quizzes forever.\n\nAre you sure?";
-    
-    if(confirm(msg)) { 
-        localStorage.removeItem(STORAGE_KEY); 
-        location.reload(); 
-    }
-};
+            state.showLogoutConfirm = true;
+            Sound.play('error');
+            render();
+        };
+        window.confirmLogout = () => {
+            state.showLogoutConfirm = false;
+            localStorage.removeItem(STORAGE_KEY); 
+            location.reload(); 
+        };
+        window.cancelLogout = () => {
+            state.showLogoutConfirm = false;
+            render();
+        };
         
         window.handleNewProfile = () => { state.profile = {...DEFAULT_STATE.profile}; state.profileCompleted=false; setView('profile'); };
     
@@ -776,6 +834,7 @@ window.updateQuizConfig = (key, value) => {
         if (!state.quizId && state.pendingArchive) {
              state.quizHistory.push(state.pendingArchive);
              state.pendingArchive = null;
+             state.hasSeenRealtimeToaster = false; // We DO let the toaster reset for the new quiz
         }
         
         
@@ -870,19 +929,10 @@ try {
             saveState(); 
         }
     }
-
-    // Clean up old listener before resetting
-    if (state.creatorNotifUnsubscribe) {
-        state.creatorNotifUnsubscribe();
-        state.creatorNotifUnsubscribe = null;
-    }
-
             
-      state.questions = []; 
+            
+    state.questions = []; 
     state.friendAnswers = []; 
-    state.lastSeenAttempts = 0;
-    state.unreadAttempts = 0;
-    state.hasSeenRealtimeToaster = false;
     state.hasCopiedLink = false; 
     state.dismissedLiveBanner = false;
     state.attemptResult = null; 
@@ -904,6 +954,13 @@ try {
         setView('auth'); 
     }
     window.history.pushState({}, document.title, window.location.pathname);
+    
+    // Re-hook the listener so it shifts its focus to the pendingArchive
+    if (state.creatorNotifUnsubscribe) {
+        state.creatorNotifUnsubscribe();
+        state.creatorNotifUnsubscribe = null;
+    }
+    window.startCreatorNotificationListener();
 };
 
 

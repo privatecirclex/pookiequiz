@@ -106,6 +106,53 @@ export function renderModals(root, state) {
                 lucide.createIcons();
             }
 
+            // --- NEW: Exit Quiz Confirm Modal ---
+            if (state.showExitConfirm) {
+                const modal = document.createElement('div');
+                modal.className = "fixed inset-0 z-[9000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-6";
+                modal.innerHTML = `
+                <div class="glass-panel rounded-[2rem] p-8 w-full max-w-xs text-center shadow-2xl animate-enter border-2 border-rose-200">
+                    <div class="text-5xl mb-4 animate-bounce">🏃💨</div>
+                    <h2 class="text-2xl font-black text-slate-800 mb-2">Leaving so soon?</h2>
+                    <p class="text-slate-500 font-bold text-sm mb-6">If you exit now, you'll lose your current progress on this quiz!</p>
+                    <div class="space-y-3">
+                        <button onclick="cancelExitQuiz()" class="w-full py-3 btn-primary rounded-xl font-bold shadow-lg">
+                            Stay & Finish ✨
+                        </button>
+                        <button onclick="confirmExitQuiz()" class="w-full py-3 bg-white text-rose-500 rounded-xl font-bold hover:bg-rose-50 border border-rose-100">
+                            Yes, Exit ⚠️
+                        </button>
+                    </div>
+                </div>`;
+                root.appendChild(modal);
+                lucide.createIcons();
+            }
+
+            // --- NEW: Logout Confirm Modal ---
+            if (state.showLogoutConfirm) {
+                const isGuest = !state.userEmail;
+                const modal = document.createElement('div');
+                modal.className = "fixed inset-0 z-[9000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-6";
+                modal.innerHTML = `
+                <div class="glass-panel rounded-[2rem] p-8 w-full max-w-xs text-center shadow-2xl animate-enter border-2 border-rose-200">
+                    <div class="text-5xl mb-4 animate-bounce">🥺</div>
+                    <h2 class="text-2xl font-black text-slate-800 mb-2">Logging out?</h2>
+                    <p class="text-slate-500 font-bold text-sm mb-6">
+                        ${isGuest ? '⚠️ <span class="text-rose-500">WAIT!</span> As a Guest, logging out will <span class="text-rose-500">DELETE</span> your history & quizzes forever.' : 'Are you sure you want to log out of your account?'}
+                    </p>
+                    <div class="space-y-3">
+                        <button onclick="cancelLogout()" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold shadow-lg">
+                            Nevermind 🎀
+                        </button>
+                        <button onclick="confirmLogout()" class="w-full py-3 bg-white text-rose-500 rounded-xl font-bold hover:bg-rose-50 border border-rose-100">
+                            Yes, Log out
+                        </button>
+                    </div>
+                </div>`;
+                root.appendChild(modal);
+                lucide.createIcons();
+            }
+
         // Template Modal
             if (state.showTemplateModal) {
                 const templates = QUIZ_TEMPLATES[state.selectedMode] || [];

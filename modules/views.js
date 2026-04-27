@@ -216,12 +216,18 @@ export function getViewHtml(state, soundBtn) {
                     let showLiveBanner = false;
                     let activeQuizCount = 0;
                     
-                    if (state.quizHistory && state.quizHistory.length > 0 && !state.dismissedLiveBanner) {
+                    // The banner needs to check BOTH the permanent history AND the active pending archive!
+                    const allSavedQuizzes = [...(state.quizHistory || [])];
+                    if (state.pendingArchive) {
+                        allSavedQuizzes.push(state.pendingArchive);
+                    }
+                    
+                    if (allSavedQuizzes.length > 0 && !state.dismissedLiveBanner) {
                         // Calculate the exact time 6 hours ago
                         const sixHoursAgo = Date.now() - (6 * 60 * 60 * 1000); 
                         
                         // Only count quizzes that were created AFTER that cutoff time
-                        const recentQuizzes = state.quizHistory.filter(q => new Date(q.timestamp || 0).getTime() > sixHoursAgo);
+                        const recentQuizzes = allSavedQuizzes.filter(q => new Date(q.timestamp || 0).getTime() > sixHoursAgo);
                         activeQuizCount = recentQuizzes.length;
                         
                         // If there is at least 1 recent quiz, show the banner
